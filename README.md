@@ -1,10 +1,12 @@
 # Habeshan REMS
 
-**Remote Employee Management System for Ethiopian Outsourcing Agencies**
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=20&pause=1200&color=61DAFB&weight=600&center=true&vCenter=true&width=700&lines=Remote+Employee+Management+System;for+Ethiopian+Outsourcing+Agencies;Offline-First+%7C+Tamper-Evident+%7C+Multi-Tenant" alt="Typing SVG" />
+</p>
 
 Habeshan REMS is an offline-first, multi-tenant web platform that gives Ethiopian outsourcing agencies and distributed teams verifiable visibility into attendance, task progress, and hours worked — replacing spreadsheets, chat threads, and informal check-ins with a system managers can actually trust.
 
-Built by a team of 4 developers as an academic capstone project at Addis Ababa University (AAiT), targeting a Release 1.0 (MVP) showcase.
+Built by a team of 4 developers Release 1.0 (MVP) showcase.
 
 ---
 
@@ -32,7 +34,46 @@ Built by a team of 4 developers as an academic capstone project at Addis Ababa U
 
 ## Why This Exists
 
-Internet connectivity in Addis Ababa and other Ethiopian markets is frequently interrupted. Most remote-work tooling assumes a stable connection, which makes it a poor fit for agencies whose employees may lose connectivity mid-shift. Habeshan REMS is built offline-first from the ground up: attendance capture *must* succeed locally regardless of network state, then reconcile with the server automatically once connectivity returns — with tamper-evident verification so a lost connection never becomes a loophole for falsified hours.
+# 🚖 The Problem
+
+Workers in Addis Ababa routinely lose **1.5 to 3 hours a day** just waiting in taxi queues and commuting. By the time they reach the office, they're already tired — before they've done a single task.  
+That’s lost productivity for the company, and lost time the person will never get back.
+
+---
+
+## 🏠 The Solution
+
+A lot of that commuting isn’t actually necessary. Many roles — developers, analysts, and other knowledge workers — don’t need physical presence to do their job well.  
+
+- Roles that genuinely require face‑to‑face presence (guards, secretaries, in‑person sales) stay office‑based.  
+- Everyone else gets the option to **work from home**, freeing up commute time for rest, exercise, family, or skill‑building.  
+
+This also helps companies: if they want to hire new staff but lack physical office space, remote work becomes a practical option. Employees can follow company rules strictly while working from home, ensuring discipline and accountability.
+
+---
+
+## 🔒 Why Habeshan REMS
+
+Remote work only works if companies can trust it’s actually happening. Without a way to verify attendance and task progress, *“work from home”* risks becoming *“disappear for the day.”*  
+
+**Habeshan REMS** makes remote work safe and accountable:  
+- Employees follow company rules with the same discipline as if they were in the office.  
+- Managers get verifiable visibility into attendance, task progress, and hours worked — without needing anyone physically present to confirm it.  
+- Agencies can grow their teams even without adding more office desks.
+
+---
+
+## 🌐 Offline‑First Design
+
+Internet connectivity in Addis Ababa and other Ethiopian markets is frequently interrupted. Tools that assume a stable connection fail exactly when they’re needed most.  
+
+Habeshan REMS is built **offline‑first** from the ground up:  
+- Attendance and task progress capture succeeds locally regardless of network state.  
+- Data reconciles with the server automatically once connectivity returns.  
+- Tamper‑evident verification ensures a dropped connection never becomes a loophole for falsified hours.  
+
+The goal: **uninterrupted productivity in real‑world Ethiopian conditions**, not conditions assumed by tools built elsewhere.
+
 
 ## Core Features (Release 1.0 Scope)
 
@@ -63,18 +104,31 @@ Explicitly deferred to protect the delivery timeline (see SRS Section 2.6 for fu
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18 (Vite), TypeScript, Tailwind CSS, Shadcn UI |
-| Offline storage | Dexie.js over IndexedDB, AES-256 encryption at rest |
-| Backend | Go 1.22+, Fiber v2 web framework, GORM v2 |
-| Database | PostgreSQL 15 (Aiven Cloud, managed) |
-| Auth | JWT via `golang-jwt/jwt` v5, bcrypt (cost ≥ 10) |
-| Notifications | Telegram Bot API via `gopkg.in/telebot.v3` |
-| Hosting | Frontend: Vercel/Netlify · Backend: Render/Railway · DB: Aiven |
-| CI | GitHub Actions (lint + test on every PR) |
+**Frontend**
 
-**Why this stack, briefly:** the frontend must be a client-rendered SPA (not SSR) because it needs to render fully offline. TypeScript gives compile-time-checked contracts between the offline queue, API client, and UI. Go/Fiber's goroutine model comfortably handles concurrent offline-batch sync and scheduled jobs on minimal server resources. Full rationale for every constraint is documented in SRS Section 2.5.
+![React](https://img.shields.io/badge/-React-20232a?style=flat-square&logo=react&logoColor=61DAFB) ![Vite](https://img.shields.io/badge/-Vite-646CFF?style=flat-square&logo=vite&logoColor=white) ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![TailwindCSS](https://img.shields.io/badge/-TailwindCSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white) ![Shadcn UI](https://img.shields.io/badge/-Shadcn%20UI-000000?style=flat-square&logo=shadcnui&logoColor=white)
+
+**Offline Storage**
+
+![IndexedDB](https://img.shields.io/badge/-IndexedDB-FF6F00?style=flat-square&logo=googlechrome&logoColor=white) ![Dexie.js](https://img.shields.io/badge/-Dexie.js-FFCA28?style=flat-square&logo=javascript&logoColor=black) ![AES--256](https://img.shields.io/badge/-AES--256%20Encrypted-4B0082?style=flat-square&logo=letsencrypt&logoColor=white)
+
+**Backend**
+
+![Go](https://img.shields.io/badge/-Go%201.22+-00ADD8?style=flat-square&logo=go&logoColor=white) ![Fiber](https://img.shields.io/badge/-Fiber-00ADD8?style=flat-square&logo=go&logoColor=white) ![GORM](https://img.shields.io/badge/-GORM-00ADD8?style=flat-square&logo=go&logoColor=white)
+
+**Database & Auth**
+
+![PostgreSQL](https://img.shields.io/badge/-PostgreSQL%2015-4169E1?style=flat-square&logo=postgresql&logoColor=white) ![JWT](https://img.shields.io/badge/-JWT-000000?style=flat-square&logo=jsonwebtokens&logoColor=white) ![bcrypt](https://img.shields.io/badge/-bcrypt-8B0000?style=flat-square&logo=letsencrypt&logoColor=white)
+
+**Notifications & Hosting**
+
+![Telegram](https://img.shields.io/badge/-Telegram%20Bot-26A5E4?style=flat-square&logo=telegram&logoColor=white) ![Vercel](https://img.shields.io/badge/-Vercel-000000?style=flat-square&logo=vercel&logoColor=white) ![Netlify](https://img.shields.io/badge/-Netlify-00C7B7?style=flat-square&logo=netlify&logoColor=white) ![Render](https://img.shields.io/badge/-Render-46E3B7?style=flat-square&logo=render&logoColor=white) ![Railway](https://img.shields.io/badge/-Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white) ![Aiven](https://img.shields.io/badge/-Aiven-FF4F00?style=flat-square&logo=aiven&logoColor=white)
+
+**CI**
+
+![GitHub Actions](https://img.shields.io/badge/-GitHub%20Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)
+
+> The frontend is a client-rendered SPA, not server-rendered, because it needs to render fully offline. Go/Fiber's concurrency model handles offline-batch sync and scheduled jobs comfortably on minimal server resources. Full rationale for every stack constraint is in SRS Section 2.5.
 
 ## System Architecture
 
@@ -161,10 +215,6 @@ npm run dev
 
 The app will be available at `http://localhost:5173` (or whichever port Vite assigns), talking to the backend at `http://localhost:8080/api/v1` by default.
 
-### Verifying your setup
-
-Once both are running, you should be able to register an account, log in, and see a role-appropriate (empty) dashboard shell. If you can't get this far, check the Environment Variables section below before opening an issue.
-
 ## Environment Variables
 
 Backend `.env` (never commit real values — see `.env.example`):
@@ -194,29 +244,71 @@ Frontend `.env.local`:
 ## Project Structure
 
 ```
-habeshan-rems/
+Habeshan-REMS-Project/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                    # Lint + test on every PR
 ├── backend/
 │   ├── cmd/
-│   │   ├── server/          # API entrypoint
-│   │   └── migrate/         # migration runner
+│   │   └── server/
+│   │       └── main.go
 │   ├── internal/
-│   │   ├── handlers/        # HTTP layer
-│   │   ├── services/        # business logic + state machines
-│   │   ├── repositories/    # GORM data access
-│   │   ├── middleware/      # auth, RBAC, rate limiting
-│   │   └── models/          # GORM structs
-│   └── migrations/          # versioned schema migrations
+│   │   ├── auth/                     # Dev 1 — includes auth/models.go
+│   │   ├── admin/                    # Dev 1
+│   │   ├── attendance/               # Dev 2 — includes attendance/models.go
+│   │   ├── tasks/                    # Dev 3 — includes tasks/models.go
+│   │   ├── timesheets/               # Dev 4 — includes timesheets/models.go
+│   │   ├── dashboard/                # Dev 4
+│   │   ├── notifications/            # Dev 4 — includes notifications/models.go
+│   │   ├── middleware/               # Dev 1 (shared) — RBAC, JWT validation
+│   │   └── common/
+│   │       ├── base.go               # BaseModel: ID, CreatedAt, UpdatedAt, OrgID
+│   │       ├── response.go           # Shared success/error envelope
+│   │       └── errors.go             # Shared error types/helpers
+│   ├── migrations/
+│   │   ├── 0001_dev1_organizations.go
+│   │   ├── 0002_dev1_users.go
+│   │   ├── 0003_dev1_teams.go
+│   │   ├── 0004_dev2_attendance_logs.go
+│   │   ├── 0005_dev3_tasks.go
+│   │   ├── 0006_dev3_task_assignments.go
+│   │   ├── 0007_dev3_task_time_logs.go
+│   │   ├── 0008_dev4_timesheets.go
+│   │   ├── 0009_dev4_notifications.go
+│   │   └── 0010_dev4_telegram_subscribers.go
+│   ├── go.mod
+│   └── go.sum
 ├── frontend/
 │   ├── src/
-│   │   ├── features/        # feature-first structure (auth, attendance, tasks, timesheets...)
-│   │   ├── components/      # shared UI components
-│   │   ├── lib/              # API client, Dexie.js queue setup
-│   │   └── routes/           # role-based routing
-├── contracts/                # shared API/type contracts — source of truth for cross-slice interfaces
-└── docs/                     # SRS, ERD, working agreements, task breakdowns
+│   │   ├── components/                # Shared UI shell (buttons, layout, nav)
+│   │   ├── features/
+│   │   │   ├── auth/                  # Dev 1
+│   │   │   ├── admin/                 # Dev 1
+│   │   │   ├── attendance/            # Dev 2
+│   │   │   ├── tasks/                 # Dev 3
+│   │   │   ├── timesheets/            # Dev 4
+│   │   │   ├── dashboard/             # Dev 4
+│   │   │   └── notifications/         # Dev 4
+│   │   ├── lib/
+│   │   │   ├── api/                   # Shared HTTP client, interceptors
+│   │   │   └── offline-db/            # Dev 2 — Dexie.js/IndexedDB
+│   │   ├── routes/                    # Dev 1 owns ProtectedRoute / role guards
+│   │   └── App.tsx
+│   ├── package.json
+│   └── tsconfig.json
+├── contracts/
+│   ├── types/                         # Shared TS types / Go structs
+│   ├── api/                           # Request/response JSON shapes
+│   └── db-schema.md                   # Frozen cross-slice table shapes (FKs, field lists)
+├── docs/
+│   ├── Habeshan_REMS_SRS_v2_0.pdf
+│   └── team-working-agreement.html
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
-The backend follows a layered architecture (handlers → services → repositories → middleware); state-transition rules are centralized in service files, not duplicated across handlers.
+The backend follows a layered architecture (handlers → services → repositories → middleware, mirrored here as `internal/{feature}` + `internal/common` + `internal/middleware`); state-transition rules are centralized in each feature's service layer, not duplicated across handlers.
 
 ## API Overview
 
@@ -258,7 +350,6 @@ Dev 1's auth/RBAC middleware is a hard dependency for the other three slices and
 - All changes go through Pull Requests; at least one other developer reviews before merge.
 - Schema changes are made exclusively via GORM migrations, named with a developer prefix or sequence number to avoid collisions. Never edit another developer's merged migration — write a new one.
 - Shared interfaces (API shapes, types, table contracts) live in `/contracts` and are agreed on *before* implementation starts, not discovered mid-build.
-- No unilateral changes to shared code — raise it in the group first.
 
 **Definition of Done** for any task:
 1. Code is written and works
@@ -307,12 +398,12 @@ A few implementation details worth knowing before touching the attendance or tas
 
 ## Documentation
 
-- `SRS.pdf` — full Software Requirements Specification (IEEE 830-1998), functional/non-functional requirements, database schema, state machines, API surface, and traceability matrix
+- `docs/Habeshan_REMS_SRS_v2_0.pdf` — full Software Requirements Specification (IEEE 830-1998), functional/non-functional requirements, database schema, state machines, API surface, and traceability matrix
 - `/contracts` — live source of truth for cross-slice API and data contracts
 
 ## License
 
-INSA CYBER TALENT, Group 5. License terms to be finalized before any public or commercial release.
+License terms to be finalized before any public or commercial release.
 
 ## Status
 🚧 In active development.
@@ -323,3 +414,4 @@ INSA CYBER TALENT, Group 5. License terms to be finalized before any public or c
 | Amanuel Habtamu  | CTC-3561-26  | ROOM 1     |
 | Abdurezak Anwar  | CTC-2844-26  | ROOM 1     |
 | Aymen Muhammed   | CTC-1544-26  | ROOM 1     |
+
