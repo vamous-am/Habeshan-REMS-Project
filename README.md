@@ -4,7 +4,7 @@
   <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=20&pause=1200&color=61DAFB&weight=600&center=true&vCenter=true&width=700&lines=Remote+Employee+Management+System;for+Ethiopian+Outsourcing+Agencies;Offline-First+%7C+Tamper-Evident+%7C+Multi-Tenant" alt="Typing SVG" />
 </p>
 
-Habeshan REMS is an offline-first, multi-tenant web platform that gives Ethiopian outsourcing agencies and distributed teams verifiable visibility into attendance, task progress, and hours worked — replacing spreadsheets, chat threads, and informal check-ins with a system managers can actually trust.
+Habeshan REMS is an offline-first, multi-tenant web platform that gives Ethiopian outsourcing agencies and distributed teams verifiable visibility into attendance, task progress, and hours worked replacing spreadsheets, chat threads, and informal check-ins with a system managers can actually trust.
 
 Built by a team of 4 developers Release 1.0 (MVP) showcase.
 
@@ -36,14 +36,14 @@ Built by a team of 4 developers Release 1.0 (MVP) showcase.
 
 # 🚖 The Problem
 
-Workers in Addis Ababa routinely lose **1.5 to 3 hours a day** just waiting in taxi queues and commuting. By the time they reach the office, they're already tired — before they've done a single task.  
+Workers in Addis Ababa routinely lose **1.5 to 3 hours a day** just waiting in taxi queues and commuting. By the time they reach the office, they're already tired before they've done a single task.  
 That’s lost productivity for the company, and lost time the person will never get back.
 
 ---
 
 ## 🏠 The Solution
 
-A lot of that commuting isn’t actually necessary. Many roles — developers, analysts, and other knowledge workers — don’t need physical presence to do their job well.  
+A lot of that commuting isn’t actually necessary. Many roles — developers, analysts, and other knowledge workers  don’t need physical presence to do their job well.  
 
 - Roles that genuinely require face‑to‑face presence (guards, secretaries, in‑person sales) stay office‑based.  
 - Everyone else gets the option to **work from home**, freeing up commute time for rest, exercise, family, or skill‑building.  
@@ -77,16 +77,16 @@ The goal: **uninterrupted productivity in real‑world Ethiopian conditions**, n
 
 ## Core Features (Release 1.0 Scope)
 
-- **Authentication & RBAC** — email/password login, JWT-based sessions, three roles (Admin, Manager, Employee), password reset
-- **Multi-organization support** — each subscribing agency operates in an isolated workspace; no cross-org data leakage at the API layer
-- **Offline-capable attendance** — clock in/out with no connectivity, tamper-evident device-hash queuing, automatic sync on reconnect
-- **Task management** — multi-employee task assignment, Kanban-style status tracking, per-task work timer with pause/resume and reason capture
-- **Automated timesheets** — system-generated from attendance + task-timer data, with employee review/submission and manager approval workflow
-- **Manager dashboard** — team attendance, task progress, pending approvals at a glance
-- **Performance leaderboard** — lightweight, opt-out, named top-3 performer view
-- **Telegram notifications** — reminders, approvals, and rejections pushed via Telegram Bot
-- **Reporting & export** — attendance and task reports exportable to CSV, Excel, and PDF
-- **ETB-denominated org & billing display** — full payment processing deferred to Release 1.1
+- **Authentication & RBAC** - email/password login, JWT-based sessions, three roles (Admin, Manager, Employee), password reset
+- **Multi-organization support** - each subscribing agency operates in an isolated workspace; no cross-org data leakage at the API layer
+- **Offline-capable attendance** - clock in/out with no connectivity, tamper-evident device-hash queuing, automatic sync on reconnect
+- **Task management** - multi-employee task assignment, Kanban-style status tracking, per-task work timer with pause/resume and reason capture
+- **Automated timesheets** - system-generated from attendance + task-timer data, with employee review/submission and manager approval workflow
+- **Manager dashboard** - team attendance, task progress, pending approvals at a glance
+- **Performance leaderboard** - lightweight, opt-out, named top-3 performer view
+- **Telegram notifications** - reminders, approvals, and rejections pushed via Telegram Bot
+- **Reporting & export** - attendance and task reports exportable to CSV, Excel, and PDF
+- **ETB-denominated org & billing display** - full payment processing deferred to Release 1.1
 
 ## Out of Scope for MVP
 
@@ -97,7 +97,7 @@ Explicitly deferred to protect the delivery timeline (see SRS Section 2.6 for fu
 - Screenshot capture or continuous activity surveillance
 - AI-based productivity or sentiment analysis
 - Git/IDE integration for automatic proof-of-work
-- Native iOS/Android apps — MVP ships as an installable PWA only
+- Native iOS/Android apps, MVP ships as an installable PWA only
 - Real-time in-app chat (Telegram is the supported channel)
 - Email/SMS notification channels
 - Multi-level management hierarchies beyond Admin–Manager–Employee
@@ -153,7 +153,7 @@ Habeshan REMS is a three-tier, offline-first architecture:
 └───────────────────────────────┘
 ```
 
-Clock-in/clock-out actions are captured locally first, queued in an encrypted IndexedDB store if offline, and synced automatically once connectivity returns. The server independently re-verifies every synced record's device hash and timestamp before accepting it — the client is never trusted as the source of truth for time.
+Clock-in/clock-out actions are captured locally first, queued in an encrypted IndexedDB store if offline, and synced automatically once connectivity returns. The server independently re-verifies every synced record's device hash and timestamp before accepting it, the client is never trusted as the source of truth for time.
 
 ## Database Schema
 
@@ -364,10 +364,10 @@ Each developer owns the test suite for their slice's highest-risk path:
 
 | Owner | Focus |
 |---|---|
-| Dev 1 | RBAC boundary + cross-organization isolation |
-| Dev 2 | Full offline-to-online sync state machine, including tamper rejection |
-| Dev 3 | Task/timer state machine — valid and invalid transitions |
-| Dev 4 | Timesheet aggregation accuracy against known attendance + task-timer fixtures |
+| Amanuel M| RBAC boundary + cross-organization isolation |
+| Aymen | Full offline-to-online sync state machine, including tamper rejection |
+| Amanuel H| Task/timer state machine — valid and invalid transitions |
+| Abdurezak | Timesheet aggregation accuracy against known attendance + task-timer fixtures |
 
 CI runs lint and the test suite on every pull request via GitHub Actions.
 
@@ -398,7 +398,7 @@ A few implementation details worth knowing before touching the attendance or tas
 
 ## Documentation
 
-- `docs/Habeshan_REMS_SRS_v2_0.pdf` — full Software Requirements Specification (IEEE 830-1998), functional/non-functional requirements, database schema, state machines, API surface, and traceability matrix
+- `docs/Habeshan_REMS_SRS_v2_0.pdf`  full Software Requirements Specification (IEEE 830-1998), functional/non-functional requirements, database schema, state machines, API surface, and traceability matrix
 - `/contracts` — live source of truth for cross-slice API and data contracts
 
 ## License
