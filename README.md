@@ -401,9 +401,6 @@ A few implementation details worth knowing before touching the attendance or tas
 - `docs/Habeshan_REMS_SRS_v2_0.pdf`  full Software Requirements Specification (IEEE 830-1998), functional/non-functional requirements, database schema, state machines, API surface, and traceability matrix
 - `/contracts` — live source of truth for cross-slice API and data contracts
 
-## License
-
-License terms to be finalized before any public or commercial release.
 
 ## Status
 🚧 In active development.
