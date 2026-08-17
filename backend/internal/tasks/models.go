@@ -33,7 +33,7 @@ type Task struct {
 	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
 
 	Organization Organization `gorm:"foreignKey:OrgID;references:ID"`
-	Creator      User         `gorm:"foreingKey:UserID;references:ID"`
+	Creator      User         `gorm:"foreignKey:CreatedBy;references:ID"`
 }
 
 // TaskAssignment
@@ -67,5 +67,5 @@ type TaskTimeLog struct {
 	DeviceHash      string     `json:"device_hash" gorm:"type:varchar(128);not null"`
 
 	Task Task `gorm:"foreignKey:TaskID;references:TaskID"`
-	User User `gorm:"foreingKey:UserID;references:UserID"`
+	User User `gorm:"foreignKey:UserID;references:ID"`
 }
