@@ -1,8 +1,6 @@
 package tasks
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -189,13 +187,19 @@ func (r *taskRepository) GetTasksByAssignedUsers(orgID uuid.UUID, userIDs []uuid
 
 // ── aggregates ────────────────────────────────────────────────────────────────
 
+// GetOverdueTasks returns non-completed tasks whose due_date is strictly
+// before today's calendar date.
+//
+// Comparison is done in DATE space on the Postgres side:
+//
+//	due_date < CURRENT_DATE
+//
+// This avoids the time.Now() pitfall where a task due today would be
+// incorrectly flagged as overdue because NOW() includes the current time-of-day.
+func (r *taskRepository) GetOverdueTasks(orgID uuid.UUID) ([]Task, error) {
 	var tasks []Task
-
-	now := time.Now().UTC()
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-
 	err := r.db.
-		Where("org_id = ? AND due_date < ? AND status != ?", orgID, today, StatusCompleted).
+		Where("org_id = ? AND due_date < CURRENT_DATE AND status != ?", orgID, StatusCompleted).
 		Find(&tasks).Error
 	if err != nil {
 		return nil, err
@@ -226,6 +230,7 @@ func (r *taskRepository) GetTaskStatusCounts(orgID uuid.UUID) (map[Status]int64,
 
 // GetOverdueTaskCountForManager returns count of overdue, non-completed tasks
 // assigned to any of the given memberIDs within orgID.
+// Uses CURRENT_DATE for the same calendar-date semantics as GetOverdueTasks.
 func (r *taskRepository) GetOverdueTaskCountForManager(orgID uuid.UUID, memberIDs []uuid.UUID) (int64, error) {
 	if len(memberIDs) == 0 {
 		return 0, nil
@@ -235,8 +240,8 @@ func (r *taskRepository) GetOverdueTaskCountForManager(orgID uuid.UUID, memberID
 		Model(&Task{}).
 		Joins("JOIN task_assignments ON task_assignments.task_id = tasks.id").
 		Where(
-			"tasks.org_id = ? AND tasks.due_date < ? AND tasks.status != ? AND task_assignments.user_id IN ?",
-			orgID, time.Now(), StatusCompleted, memberIDs,
+			"tasks.org_id = ? AND tasks.due_date < CURRENT_DATE AND tasks.status != ? AND task_assignments.user_id IN ?",
+			orgID, StatusCompleted, memberIDs,
 		).
 		Distinct("tasks.id").
 		Count(&count).Error
