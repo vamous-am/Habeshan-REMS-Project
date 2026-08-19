@@ -189,11 +189,13 @@ func (r *taskRepository) GetTasksByAssignedUsers(orgID uuid.UUID, userIDs []uuid
 
 // ── aggregates ────────────────────────────────────────────────────────────────
 
-// GetOverdueTasks returns non-completed tasks whose due_date < today.
-func (r *taskRepository) GetOverdueTasks(orgID uuid.UUID) ([]Task, error) {
 	var tasks []Task
+
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+
 	err := r.db.
-		Where("org_id = ? AND due_date < ? AND status != ?", orgID, time.Now(), StatusCompleted).
+		Where("org_id = ? AND due_date < ? AND status != ?", orgID, today, StatusCompleted).
 		Find(&tasks).Error
 	if err != nil {
 		return nil, err
