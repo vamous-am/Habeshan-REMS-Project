@@ -5,6 +5,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func MigrateTasks(db *gorm.DB) error{
+func MigrateTasks(db *gorm.DB) error {
 	return db.AutoMigrate(&tasks.Task{})
 }
