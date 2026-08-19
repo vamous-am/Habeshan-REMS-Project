@@ -147,8 +147,8 @@ Column notes ending in an FR/BR/C-number cite the exact SRS requirement that fie
 
 ---
 
-## Deviation from SRS
+## Deviation from original **SRS**
 
-The SRS's schema appendix (Section 3.4) specifies auto-incrementing integer PKs and `DATETIME` columns, and constraint C8 says the schema must be implemented "exactly as specified." This project instead uses UUID primary keys, `timestamptz`, and mandatory `org_id` scoping on every table, per the shared `BaseModel` struct established in Sprint 0 (`internal/common/base.go`).
+The original **SRS** (v2.0, Section 3.4) specified auto-incrementing integer `primary keys` and **DATETIME** columns; that requirement has since been superseded by **SRS** v2.1, which was revised to match this contract. This project uses **UUID** primary keys, timestamptz columns, and selective `org_id` tenant-scoping (see the rule at the top of this file and each table's column list), plus soft delete only on organizations and users — implemented via the shared `common.ID / common.TenantScoped / common.SoftDeletable` structs.
 
-This is a structural/implementation choice, not a change to any functional requirement — every FR is still fully satisfied by this schema, and the response envelope, error codes, and API surface all match the SRS as written. Rationale: UUIDs avoid PK collisions across a multi-tenant system without a central sequence, and `org_id` at the struct level makes tenant isolation (NFR-SEC-03) harder to accidentally miss than relying on transitive joins.
+This is a structural choice, not a change to any functional requirement — all FRs are still fully satisfied. UUIDs avoid PK collisions in a multi-tenant system without a central sequence, and `org_id` at the struct level makes tenant isolation (**NFR**-**SEC**-03) harder to accidentally miss than relying on transitive joins what about now did this solve `contracts/db-schema.md` problem.
