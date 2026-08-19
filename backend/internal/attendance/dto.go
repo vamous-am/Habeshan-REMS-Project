@@ -15,10 +15,12 @@ type ClockInRequest struct {
 
 // ClockOutRequest holds incoming JSON payload for POST /attendance/clock-out
 type ClockOutRequest struct {
-	Timestamp time.Time `json:"timestamp"`
+	DeviceHash string    `json:"device_hash,omitempty"`
+	RecordUUID uuid.UUID `json:"record_uuid,omitempty"`
+	Timestamp  time.Time `json:"timestamp"`
 }
 
-// AttendanceResponse represents the payload returned to clients
+// AttendanceResponse represents the standardized response payload returned to clients
 type AttendanceResponse struct {
 	ID         uuid.UUID  `json:"id"`
 	UserID     uuid.UUID  `json:"user_id"`
