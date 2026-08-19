@@ -23,6 +23,17 @@ func (s *taskService) CreateTask(req CreateTaskRequest, callerID uuid.UUID) (Tas
 	if err := requireRole(caller, RoleAdmin, RoleManager); err != nil {
 		return Task{}, fmt.Errorf("%w: only admins and managers can create tasks", err)
 	}
+
+	// Confirm the organisation exists — prevents tasks being created under a
+	// deleted or non-existent org even if the caller's user row still has that
+	// org_id (e.g. soft-deleted org, stale token).
+	if _, err := s.orgRepo.GetOrganizationByID(req.OrgID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return Task{}, fmt.Errorf("%w: organisation not found", ErrNotFound)
+		}
+		return Task{}, ErrInternal
+	}
+
 	if req.Title == "" {
 		return Task{}, fmt.Errorf("%w: title is required", ErrBadRequest)
 	}
