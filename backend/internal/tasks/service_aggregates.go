@@ -56,5 +56,17 @@ func (s *taskService) GetOverdueTasks(callerID, orgID uuid.UUID) ([]Task, error)
 	if err != nil {
 		return nil, ErrInternal
 	}
-	return s.taskRepo.GetTasksByAssignedUsers(orgID, memberIDs)
-}
+
+	tasks, err := s.taskRepo.GetTasksByAssignedUsers(orgID, memberIDs)
+	if err != nil {
+		return nil, ErrInternal
+	}
+
+	now := time.Now()
+	overdue := make([]Task, 0, len(tasks))
+	for _, t := range tasks {
+		if t.Status != StatusCompleted && t.DueDate != nil && t.DueDate.Before(now) {
+			overdue = append(overdue, t)
+		}
+	}
+	return overdue, nil
