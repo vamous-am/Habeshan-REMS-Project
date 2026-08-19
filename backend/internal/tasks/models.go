@@ -139,8 +139,8 @@ type TaskAssignment struct {
 // ─── TaskTimeLog ──────────────────────────────────────────────────────────────
 
 // TaskTimeLog records a single timer segment (start → pause/stop).
-// Each start, resume, pause, and stop produces a new row — history is never
-// overwritten, keeping the log auditable (FR-TASK-08).
+// Each start/resume opens a new row; pause/stop close that segment by updating it,
+// preserving an auditable segment history (FR-TASK-08).
 //
 // Embeds common.ID (uuid PK) and common.Timestamps.
 // No OrgID — org isolation is reached transitively through task_id → tasks.org_id,
