@@ -2,6 +2,7 @@ package attendance
 
 import (
 	"errors"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -41,8 +42,11 @@ func (h *Handler) ClockIn(c *fiber.Ctx) error {
 	}
 
 	// 4. Invoke service business logic
-	log, err := h.service.ClockIn(orgID, userID, req)
+	attLog, err := h.service.ClockIn(orgID, userID, req)
 	if err != nil {
+		// Log detailed error to backend terminal
+		log.Println("❌ CLOCK-IN ERROR DETAILS:", err)
+
 		if errors.Is(err, ErrActiveClockInExists) {
 			return common.Fail(c, fiber.StatusConflict, err.Error())
 		}
@@ -51,14 +55,14 @@ func (h *Handler) ClockIn(c *fiber.Ctx) error {
 
 	// 5. Format response payload
 	resp := AttendanceResponse{
-		ID:         log.ID.ID,
-		UserID:     log.UserID,
-		ClockIn:    log.ClockIn,
-		ClockOut:   log.ClockOut,
-		TotalHours: log.TotalHours,
-		SyncStatus: log.SyncStatus,
-		DeviceHash: log.DeviceHash,
-		RecordUUID: log.RecordUUID,
+		ID:         attLog.ID.ID,
+		UserID:     attLog.UserID,
+		ClockIn:    attLog.ClockIn,
+		ClockOut:   attLog.ClockOut,
+		TotalHours: attLog.TotalHours,
+		SyncStatus: attLog.SyncStatus,
+		DeviceHash: attLog.DeviceHash,
+		RecordUUID: attLog.RecordUUID,
 	}
 
 	return common.Created(c, resp)
@@ -83,8 +87,11 @@ func (h *Handler) ClockOut(c *fiber.Ctx) error {
 	}
 
 	// 3. Invoke service business logic
-	log, err := h.service.ClockOut(orgID, userID, req)
+	attLog, err := h.service.ClockOut(orgID, userID, req)
 	if err != nil {
+		// Log detailed error to backend terminal
+		log.Println("❌ CLOCK-OUT ERROR DETAILS:", err)
+
 		if errors.Is(err, ErrNoActiveClockIn) {
 			return common.Fail(c, fiber.StatusNotFound, err.Error())
 		}
@@ -93,14 +100,14 @@ func (h *Handler) ClockOut(c *fiber.Ctx) error {
 
 	// 4. Format response payload
 	resp := AttendanceResponse{
-		ID:         log.ID.ID,
-		UserID:     log.UserID,
-		ClockIn:    log.ClockIn,
-		ClockOut:   log.ClockOut,
-		TotalHours: log.TotalHours,
-		SyncStatus: log.SyncStatus,
-		DeviceHash: log.DeviceHash,
-		RecordUUID: log.RecordUUID,
+		ID:         attLog.ID.ID,
+		UserID:     attLog.UserID,
+		ClockIn:    attLog.ClockIn,
+		ClockOut:   attLog.ClockOut,
+		TotalHours: attLog.TotalHours,
+		SyncStatus: attLog.SyncStatus,
+		DeviceHash: attLog.DeviceHash,
+		RecordUUID: attLog.RecordUUID,
 	}
 
 	return common.Created(c, resp)
