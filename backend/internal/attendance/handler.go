@@ -103,7 +103,7 @@ func (h *Handler) ClockOut(c *fiber.Ctx) error {
 func (h *Handler) SyncBatch(c *fiber.Ctx) error {
 	var batchReq BatchSyncRequest
 
-	// Handle single record or batch array payload
+	// Support both batch array payload `{ records: [...] }` and single object fallback
 	if err := c.BodyParser(&batchReq); err != nil || len(batchReq.Records) == 0 {
 		var singleRecord SyncRecordRequest
 		if errSingle := c.BodyParser(&singleRecord); errSingle == nil && singleRecord.RecordUUID != "" {
@@ -120,6 +120,7 @@ func (h *Handler) SyncBatch(c *fiber.Ctx) error {
 
 	res, err := h.service.SyncBatch(orgID, batchReq.Records)
 	if err != nil {
+		log.Println("❌ BATCH SYNC ERROR DETAILS:", err)
 		return common.Fail(c, fiber.StatusInternalServerError, "Batch sync processing failed")
 	}
 

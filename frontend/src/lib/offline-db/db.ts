@@ -19,7 +19,7 @@ export class AttendanceDatabase extends Dexie {
     super('HabeshanREMS_Attendance');
     this.version(1).stores({
       // Primary Key ++id, Indexes on record_uuid and sync_status for sync workers
-      offlineLogs: '++id, record_uuid, sync_status, action_type, timestamp'
+      offlineLogs: '++id, record_uuid, sync_status, action_type, timestamp',
     });
   }
 }

@@ -15,18 +15,19 @@ export async function syncOfflineLogs(): Promise<void> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token') || ''}`
+        Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
       },
-      body: JSON.stringify({ records: pendingLogs })
+      body: JSON.stringify({ records: pendingLogs }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      const results = data.data?.results || [];
+      const results = data.results || data.data?.results || [];
 
       for (const res of results) {
         const localLog = pendingLogs.find((l) => l.record_uuid === res.record_uuid);
         if (localLog && localLog.id) {
+          // Both SYNCED_VERIFIED and ALREADY_SYNCED mean server successfully holds the record
           if (res.status === 'SYNCED_VERIFIED' || res.status === 'ALREADY_SYNCED') {
             await db.offlineLogs.update(localLog.id, { sync_status: 'SYNCED_VERIFIED' });
           } else if (res.status === 'REJECTED_TAMPERED') {
