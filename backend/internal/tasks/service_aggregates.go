@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/habeshan-rems/backend/internal/auth"
 )
 
 // GetTaskStatusCounts — FR-TASK-09
@@ -18,11 +19,11 @@ func (s *taskService) GetTaskStatusCounts(callerID, orgID uuid.UUID) (map[Status
 	if err := requireOrgMatch(caller, orgID); err != nil {
 		return nil, err
 	}
-	if err := requireRole(caller, RoleAdmin, RoleManager); err != nil {
+	if err := requireRole(caller, auth.RoleAdmin, auth.RoleManager); err != nil {
 		return nil, err
 	}
 
-	if caller.Role == RoleAdmin {
+	if caller.Role == auth.RoleAdmin {
 		return s.taskRepo.GetTaskStatusCounts(orgID)
 	}
 
@@ -44,11 +45,11 @@ func (s *taskService) GetOverdueTasks(callerID, orgID uuid.UUID) ([]Task, error)
 	if err := requireOrgMatch(caller, orgID); err != nil {
 		return nil, err
 	}
-	if err := requireRole(caller, RoleAdmin, RoleManager); err != nil {
+	if err := requireRole(caller, auth.RoleAdmin, auth.RoleManager); err != nil {
 		return nil, err
 	}
 
-	if caller.Role == RoleAdmin {
+	if caller.Role == auth.RoleAdmin {
 		return s.taskRepo.GetOverdueTasks(orgID)
 	}
 

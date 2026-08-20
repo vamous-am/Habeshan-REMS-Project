@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/habeshan-rems/backend/internal/auth"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +26,7 @@ func (s *taskService) AssignTask(taskID uuid.UUID, userIDs []uuid.UUID, callerID
 	if err := requireOrgMatch(caller, orgID); err != nil {
 		return err
 	}
-	if err := requireRole(caller, RoleAdmin, RoleManager); err != nil {
+	if err := requireRole(caller, auth.RoleAdmin, auth.RoleManager); err != nil {
 		return fmt.Errorf("%w: only admins and managers can assign tasks", err)
 	}
 
@@ -67,7 +68,7 @@ func (s *taskService) UnassignTask(taskID, userID uuid.UUID, callerID, orgID uui
 	if err := requireOrgMatch(caller, orgID); err != nil {
 		return err
 	}
-	if err := requireRole(caller, RoleAdmin, RoleManager); err != nil {
+	if err := requireRole(caller, auth.RoleAdmin, auth.RoleManager); err != nil {
 		return fmt.Errorf("%w: only admins and managers can unassign tasks", err)
 	}
 

@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/habeshan-rems/backend/internal/auth"
 	"gorm.io/gorm"
 )
 
@@ -46,7 +47,7 @@ func (s *taskService) StartTimer(req TimerStartRequest, callerID, orgID uuid.UUI
 	if err != nil {
 		return TaskTimeLog{}, ErrInternal
 	}
-	if !assigned && caller.Role == RoleEmployee {
+	if !assigned && caller.Role == auth.RoleEmployee {
 		return TaskTimeLog{}, fmt.Errorf("%w: you are not assigned to this task", ErrForbidden)
 	}
 
@@ -262,7 +263,7 @@ func (s *taskService) GetTimerHistory(taskID uuid.UUID, callerID, orgID uuid.UUI
 	}
 
 	// Redact pause reasons from other employees' rows (FR-TASK-07).
-	if caller.Role != RoleAdmin && caller.Role != RoleManager {
+	if caller.Role != auth.RoleAdmin && caller.Role != auth.RoleManager {
 		for i := range logs {
 			if logs[i].UserID != callerID {
 				logs[i].PauseReason = nil

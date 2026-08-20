@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"github.com/habeshan-rems/backend/internal/middleware"
+	"github.com/habeshan-rems/backend/internal/auth"
 )
 
 // RegisterRoutes wires all Tasks HTTP endpoints to the Fiber app.
@@ -31,8 +32,8 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	taskRepo := NewTaskRepository(db)
 	assignRepo := NewTaskAssignmentRepository(db)
 	timeLogRepo := NewTaskTimeLogRepository(db)
-	userRepo := NewUserRepository(db)
-	orgRepo := NewOrganizationRepository(db)
+	userRepo := auth.NewUserRepository(db)
+	orgRepo := auth.NewOrganizationRepository(db)
 
 	svc := NewService(taskRepo, assignRepo, timeLogRepo, userRepo, orgRepo)
 	h := NewHandler(svc, assignRepo)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/common"
+	"github.com/habeshan-rems/backend/internal/auth"
 	"gorm.io/gorm"
 )
 
@@ -59,16 +60,16 @@ type taskService struct {
 	taskRepo    TaskRepository
 	assignRepo  TaskAssignmentRepository
 	timeLogRepo TaskTimeLogRepository
-	userRepo    UserRepository
-	orgRepo     OrganizationRepository
+	userRepo    auth.UserRepository
+	orgRepo     auth.OrganizationRepository
 }
 
 func NewService(
 	taskRepo TaskRepository,
 	assignRepo TaskAssignmentRepository,
 	timeLogRepo TaskTimeLogRepository,
-	userRepo UserRepository,
-	orgRepo OrganizationRepository,
+	userRepo auth.UserRepository,
+	orgRepo auth.OrganizationRepository,
 ) TaskService {
 	return &taskService{
 		taskRepo:    taskRepo,
@@ -82,19 +83,19 @@ func NewService(
 // ─── shared helpers ───────────────────────────────────────────────────────────
 
 // resolveUser fetches the caller and maps a not-found into ErrUnauthorized.
-func (s *taskService) resolveUser(userID uuid.UUID) (User, error) {
+func (s *taskService) resolveUser(userID uuid.UUID) (auth.User, error) {
 	u, err := s.userRepo.GetUserByID(userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return User{}, fmt.Errorf("%w: user not found", ErrUnauthorized)
+			return auth.User{}, fmt.Errorf("%w: user not found", ErrUnauthorized)
 		}
-		return User{}, ErrInternal
+		return auth.User{}, ErrInternal
 	}
 	return u, nil
 }
 
 // requireOrgMatch returns ErrForbidden when the user is not in orgID.
-func requireOrgMatch(user User, orgID uuid.UUID) error {
+func requireOrgMatch(user auth.User, orgID uuid.UUID) error {
 	if user.OrgID != orgID {
 		return ErrForbidden
 	}
@@ -102,7 +103,7 @@ func requireOrgMatch(user User, orgID uuid.UUID) error {
 }
 
 // requireRole returns ErrForbidden unless the caller holds one of the given roles.
-func requireRole(user User, roles ...UserRole) error {
+func requireRole(user auth.User, roles ...auth.Role) error {
 	for _, r := range roles {
 		if user.Role == r {
 			return nil
@@ -114,15 +115,15 @@ func requireRole(user User, roles ...UserRole) error {
 // canSeeTask checks whether a caller is allowed to read a task.
 //   - admins / managers : any task in their org
 //   - employees         : only tasks assigned to them
-func (s *taskService) canSeeTask(caller User, task Task, orgID uuid.UUID) error {
+func (s *taskService) canSeeTask(caller auth.User, task Task, orgID uuid.UUID) error {
 	if caller.OrgID != orgID || task.OrgID != orgID {
 		return ErrForbidden
 	}
-	if caller.Role == RoleAdmin || caller.Role == RoleManager {
+	if caller.Role == auth.RoleAdmin || caller.Role == auth.RoleManager {
 		return nil
 	}
-	if caller.Role == RoleEmployee {
-		assigned, err := s.assignRepo.IsTaskAssignedToUser(task.ID.ID, caller.ID)
+	if caller.Role == auth.RoleEmployee {
+		assigned, err := s.assignRepo.IsTaskAssignedToUser(task.ID.ID, caller.ID.ID)
 		if err != nil {
 			return ErrInternal
 		}

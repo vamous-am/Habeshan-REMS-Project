@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/habeshan-rems/backend/internal/auth"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +21,7 @@ func (s *taskService) CreateTask(req CreateTaskRequest, callerID uuid.UUID) (Tas
 	if err := requireOrgMatch(caller, req.OrgID); err != nil {
 		return Task{}, err
 	}
-	if err := requireRole(caller, RoleAdmin, RoleManager); err != nil {
+	if err := requireRole(caller, auth.RoleAdmin, auth.RoleManager); err != nil {
 		return Task{}, fmt.Errorf("%w: only admins and managers can create tasks", err)
 	}
 
@@ -75,13 +76,13 @@ func (s *taskService) GetMyTasks(callerID, orgID uuid.UUID) ([]Task, error) {
 	}
 
 	switch caller.Role {
-	case RoleAdmin:
+	case auth.RoleAdmin:
 		return s.taskRepo.GetTasksByOrgID(orgID)
 
-	case RoleManager:
+	case auth.RoleManager:
 		return s.managerTasks(callerID, orgID)
 
-	case RoleEmployee:
+	case auth.RoleEmployee:
 		return s.taskRepo.GetTasksByUserID(callerID)
 	}
 
