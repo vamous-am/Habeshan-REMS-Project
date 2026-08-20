@@ -1,3 +1,12 @@
 package migrations
 
-// TODO Dev 1: AutoMigrate organizations table
+import (
+	"gorm.io/gorm"
+
+	"github.com/habeshan-rems/backend/internal/auth"
+)
+
+// migrateOrganizations creates/updates the organizations table.
+func Migrate0001Organizations(db *gorm.DB) error {
+	return db.AutoMigrate(&auth.Organization{})
+}
