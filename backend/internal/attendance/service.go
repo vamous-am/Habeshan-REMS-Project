@@ -1,105 +1,181 @@
 package attendance
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/habeshan-rems/backend/internal/common"
 	"gorm.io/gorm"
 )
 
 var (
-	// ErrActiveClockInExists is returned when a user attempts to clock in without closing an open session
-	ErrActiveClockInExists = errors.New("user already has an active clock-in session")
-	// ErrNoActiveClockIn is returned when a user attempts to clock out without an active open session
-	ErrNoActiveClockIn = errors.New("no active clock-in session found")
+	ErrActiveClockInExists = errors.New("active clock-in session already exists")
+	ErrNoActiveClockIn     = errors.New("no active clock-in session found")
 )
 
 type Service interface {
 	ClockIn(orgID, userID uuid.UUID, req ClockInRequest) (*AttendanceLog, error)
 	ClockOut(orgID, userID uuid.UUID, req ClockOutRequest) (*AttendanceLog, error)
+	SyncBatch(orgID uuid.UUID, reqs []SyncRecordRequest) (BatchSyncResponse, error)
 }
 
 type service struct {
 	db *gorm.DB
 }
 
-// NewService constructs a new attendance service instance
 func NewService(db *gorm.DB) Service {
 	return &service{db: db}
 }
 
-// ClockIn enforces business rules and creates an attendance record
 func (s *service) ClockIn(orgID, userID uuid.UUID, req ClockInRequest) (*AttendanceLog, error) {
-	// 1. Check for an active open session (clock_out IS NULL)
-	var existing AttendanceLog
-	err := s.db.Where("org_id = ? AND user_id = ? AND clock_out IS NULL", orgID, userID).First(&existing).Error
+	var active AttendanceLog
+	err := s.db.Where("org_id = ? AND user_id = ? AND clock_out IS NULL", orgID, userID).First(&active).Error
 	if err == nil {
 		return nil, ErrActiveClockInExists
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
 	}
 
-	// 2. Use request timestamp or fallback to current UTC time
-	clockInTime := req.Timestamp
-	if clockInTime.IsZero() {
-		clockInTime = time.Now().UTC()
-	}
-
-	// 3. Construct the record with SYNCED_VERIFIED status for online clock-in
-	log := AttendanceLog{
-		BaseModel: common.BaseModel{
-			TenantScoped: common.TenantScoped{
-				OrgID: orgID,
-			},
-		},
+	attLog := AttendanceLog{
 		UserID:     userID,
-		ClockIn:    clockInTime,
-		ClockOut:   nil,
+		ClockIn:    time.Now().UTC(),
 		SyncStatus: SyncStatusSyncedVerified,
 		DeviceHash: req.DeviceHash,
 		RecordUUID: req.RecordUUID,
 	}
+	attLog.OrgID = orgID
 
-	// 4. Save to PostgreSQL via GORM
-	if err := s.db.Create(&log).Error; err != nil {
+	if err := s.db.Create(&attLog).Error; err != nil {
 		return nil, err
 	}
 
-	return &log, nil
+	return &attLog, nil
 }
 
-// ClockOut finds the active open session, updates clock_out timestamp, and calculates total_hours
 func (s *service) ClockOut(orgID, userID uuid.UUID, req ClockOutRequest) (*AttendanceLog, error) {
-	// 1. Find active open session (clock_out IS NULL)
-	var log AttendanceLog
-	err := s.db.Where("org_id = ? AND user_id = ? AND clock_out IS NULL", orgID, userID).First(&log).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	var active AttendanceLog
+	err := s.db.Where("org_id = ? AND user_id = ? AND clock_out IS NULL", orgID, userID).First(&active).Error
+	if err != nil {
 		return nil, ErrNoActiveClockIn
-	} else if err != nil {
+	}
+
+	now := time.Now().UTC()
+	duration := now.Sub(active.ClockIn).Hours()
+
+	active.ClockOut = &now
+	active.TotalHours = &duration
+	active.SyncStatus = SyncStatusSyncedVerified
+
+	if err := s.db.Save(&active).Error; err != nil {
 		return nil, err
 	}
 
-	// 2. Use request timestamp or fallback to current UTC time
-	clockOutTime := req.Timestamp
-	if clockOutTime.IsZero() {
-		clockOutTime = time.Now().UTC()
+	return &active, nil
+}
+
+func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (BatchSyncResponse, error) {
+	var results []SyncResult
+
+	for _, rec := range records {
+		parsedRecordUUID, err := uuid.Parse(rec.RecordUUID)
+		if err != nil {
+			results = append(results, SyncResult{
+				RecordUUID: rec.RecordUUID,
+				Status:     string(SyncStatusRejectedTampered),
+				Message:    "Invalid UUID format",
+			})
+			continue
+		}
+
+		parsedUserID, err := uuid.Parse(rec.UserID)
+		if err != nil {
+			results = append(results, SyncResult{
+				RecordUUID: rec.RecordUUID,
+				Status:     string(SyncStatusRejectedTampered),
+				Message:    "Invalid User ID format",
+			})
+			continue
+		}
+
+		// Task 10: Idempotent Deduplication Check
+		var existing AttendanceLog
+		if err := s.db.Where("record_uuid = ?", parsedRecordUUID).First(&existing).Error; err == nil {
+			results = append(results, SyncResult{
+				RecordUUID: rec.RecordUUID,
+				Status:     "ALREADY_SYNCED",
+				Message:    "Record UUID already exists in database",
+			})
+			continue
+		}
+
+		// SHA-256 Tamper Check Verification
+		rawString := fmt.Sprintf("%s|%s|%s|%s", rec.RecordUUID, rec.UserID, rec.ActionType, rec.Timestamp)
+		hash := sha256.Sum256([]byte(rawString))
+		expectedHash := hex.EncodeToString(hash[:])
+
+		if rec.DeviceHash != expectedHash {
+			// Record marked as REJECTED_TAMPERED
+			tamperedLog := AttendanceLog{
+				UserID:     parsedUserID,
+				ClockIn:    time.Now().UTC(),
+				SyncStatus: SyncStatusRejectedTampered,
+				DeviceHash: rec.DeviceHash,
+				RecordUUID: parsedRecordUUID,
+			}
+			tamperedLog.OrgID = orgID
+			s.db.Create(&tamperedLog)
+
+			results = append(results, SyncResult{
+				RecordUUID: rec.RecordUUID,
+				Status:     string(SyncStatusRejectedTampered),
+				Message:    "Device hash signature mismatch",
+			})
+			continue
+		}
+
+		// Parse record timestamp
+		ts, err := time.Parse(time.RFC3339, rec.Timestamp)
+		if err != nil {
+			ts = time.Now().UTC()
+		}
+
+		if rec.ActionType == "CLOCK_IN" {
+			logEntry := AttendanceLog{
+				UserID:     parsedUserID,
+				ClockIn:    ts,
+				SyncStatus: SyncStatusSyncedVerified,
+				DeviceHash: rec.DeviceHash,
+				RecordUUID: parsedRecordUUID,
+			}
+			logEntry.OrgID = orgID
+			if err := s.db.Create(&logEntry).Error; err != nil {
+				results = append(results, SyncResult{
+					RecordUUID: rec.RecordUUID,
+					Status:     "ERROR",
+					Message:    err.Error(),
+				})
+				continue
+			}
+		} else if rec.ActionType == "CLOCK_OUT" {
+			var active AttendanceLog
+			if err := s.db.Where("org_id = ? AND user_id = ? AND clock_out IS NULL", orgID, parsedUserID).Order("clock_in desc").First(&active).Error; err == nil {
+				duration := ts.Sub(active.ClockIn).Hours()
+				active.ClockOut = &ts
+				active.TotalHours = &duration
+				active.SyncStatus = SyncStatusSyncedVerified
+				s.db.Save(&active)
+			}
+		}
+
+		results = append(results, SyncResult{
+			RecordUUID: rec.RecordUUID,
+			Status:     string(SyncStatusSyncedVerified),
+		})
 	}
 
-	// 3. Calculate total duration in hours
-	duration := clockOutTime.Sub(log.ClockIn).Hours()
-	if duration < 0 {
-		duration = 0.0
-	}
-
-	log.ClockOut = &clockOutTime
-	log.TotalHours = &duration
-
-	// 4. Save updated record
-	if err := s.db.Save(&log).Error; err != nil {
-		return nil, err
-	}
-
-	return &log, nil
+	return BatchSyncResponse{
+		Processed: len(results),
+		Results:   results,
+	}, nil
 }

@@ -13,26 +13,21 @@ type Handler struct {
 	service Service
 }
 
-// NewHandler initializes a new attendance HTTP handler
 func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// ClockIn handles POST /attendance/clock-in
 func (h *Handler) ClockIn(c *fiber.Ctx) error {
 	var req ClockInRequest
 
-	// 1. Parse JSON request body into the DTO
 	if err := c.BodyParser(&req); err != nil {
 		return common.Fail(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	// 2. Validate required payload fields
 	if req.RecordUUID == uuid.Nil || req.DeviceHash == "" {
 		return common.Fail(c, fiber.StatusBadRequest, "record_uuid and device_hash are required")
 	}
 
-	// 3. Extract org_id and user_id injected into c.Locals by Dev 1's JWT middleware
 	var orgID, userID uuid.UUID
 	if val := c.Locals("org_id"); val != nil {
 		orgID, _ = val.(uuid.UUID)
@@ -41,10 +36,8 @@ func (h *Handler) ClockIn(c *fiber.Ctx) error {
 		userID, _ = val.(uuid.UUID)
 	}
 
-	// 4. Invoke service business logic
 	attLog, err := h.service.ClockIn(orgID, userID, req)
 	if err != nil {
-		// Log detailed error to backend terminal
 		log.Println("❌ CLOCK-IN ERROR DETAILS:", err)
 
 		if errors.Is(err, ErrActiveClockInExists) {
@@ -53,7 +46,6 @@ func (h *Handler) ClockIn(c *fiber.Ctx) error {
 		return common.Fail(c, fiber.StatusInternalServerError, "Failed to record clock-in")
 	}
 
-	// 5. Format response payload
 	resp := AttendanceResponse{
 		ID:         attLog.ID.ID,
 		UserID:     attLog.UserID,
@@ -68,16 +60,13 @@ func (h *Handler) ClockIn(c *fiber.Ctx) error {
 	return common.Created(c, resp)
 }
 
-// ClockOut handles POST /attendance/clock-out
 func (h *Handler) ClockOut(c *fiber.Ctx) error {
 	var req ClockOutRequest
 
-	// 1. Parse JSON request body into the DTO
 	if err := c.BodyParser(&req); err != nil {
 		return common.Fail(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	// 2. Extract org_id and user_id injected into c.Locals by Dev 1's JWT middleware
 	var orgID, userID uuid.UUID
 	if val := c.Locals("org_id"); val != nil {
 		orgID, _ = val.(uuid.UUID)
@@ -86,10 +75,8 @@ func (h *Handler) ClockOut(c *fiber.Ctx) error {
 		userID, _ = val.(uuid.UUID)
 	}
 
-	// 3. Invoke service business logic
 	attLog, err := h.service.ClockOut(orgID, userID, req)
 	if err != nil {
-		// Log detailed error to backend terminal
 		log.Println("❌ CLOCK-OUT ERROR DETAILS:", err)
 
 		if errors.Is(err, ErrNoActiveClockIn) {
@@ -98,7 +85,6 @@ func (h *Handler) ClockOut(c *fiber.Ctx) error {
 		return common.Fail(c, fiber.StatusInternalServerError, "Failed to record clock-out")
 	}
 
-	// 4. Format response payload
 	resp := AttendanceResponse{
 		ID:         attLog.ID.ID,
 		UserID:     attLog.UserID,
@@ -111,4 +97,31 @@ func (h *Handler) ClockOut(c *fiber.Ctx) error {
 	}
 
 	return common.Created(c, resp)
+}
+
+// SyncBatch handles POST /attendance/sync
+func (h *Handler) SyncBatch(c *fiber.Ctx) error {
+	var batchReq BatchSyncRequest
+
+	// Handle single record or batch array payload
+	if err := c.BodyParser(&batchReq); err != nil || len(batchReq.Records) == 0 {
+		var singleRecord SyncRecordRequest
+		if errSingle := c.BodyParser(&singleRecord); errSingle == nil && singleRecord.RecordUUID != "" {
+			batchReq.Records = []SyncRecordRequest{singleRecord}
+		} else {
+			return common.Fail(c, fiber.StatusBadRequest, "Invalid or empty sync batch payload")
+		}
+	}
+
+	var orgID uuid.UUID
+	if val := c.Locals("org_id"); val != nil {
+		orgID, _ = val.(uuid.UUID)
+	}
+
+	res, err := h.service.SyncBatch(orgID, batchReq.Records)
+	if err != nil {
+		return common.Fail(c, fiber.StatusInternalServerError, "Batch sync processing failed")
+	}
+
+	return c.Status(fiber.StatusOK).JSON(res)
 }

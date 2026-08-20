@@ -1,6 +1,6 @@
 import { db } from '../../lib/offline-db/db';
 
-export async function syncOfflineLogs() {
+export async function syncOfflineLogs(): Promise<void> {
   if (!navigator.onLine) return;
 
   const pendingLogs = await db.offlineLogs
@@ -10,26 +10,38 @@ export async function syncOfflineLogs() {
 
   if (pendingLogs.length === 0) return;
 
-  for (const log of pendingLogs) {
-    try {
-      // POST to backend batch/sync endpoint
-      const response = await fetch('/api/v1/attendance/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(log)
-      });
+  try {
+    const response = await fetch('/api/v1/attendance/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token') || ''}`
+      },
+      body: JSON.stringify({ records: pendingLogs })
+    });
 
-      if (response.ok) {
-        // Update local status to SYNCED_VERIFIED
-        await db.offlineLogs.update(log.id!, { sync_status: 'SYNCED_VERIFIED' });
+    if (response.ok) {
+      const data = await response.json();
+      const results = data.data?.results || [];
+
+      for (const res of results) {
+        const localLog = pendingLogs.find((l) => l.record_uuid === res.record_uuid);
+        if (localLog && localLog.id) {
+          if (res.status === 'SYNCED_VERIFIED' || res.status === 'ALREADY_SYNCED') {
+            await db.offlineLogs.update(localLog.id, { sync_status: 'SYNCED_VERIFIED' });
+          } else if (res.status === 'REJECTED_TAMPERED') {
+            await db.offlineLogs.update(localLog.id, { sync_status: 'REJECTED_TAMPERED' });
+          }
+        }
       }
-    } catch (err) {
-      console.error("Sync failed for log:", log.record_uuid, err);
     }
+  } catch (err) {
+    console.error('Batch sync network request failed:', err);
   }
 }
 
-// Auto-trigger sync when coming back online
-window.addEventListener('online', () => {
-  syncOfflineLogs();
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    syncOfflineLogs();
+  });
+}
