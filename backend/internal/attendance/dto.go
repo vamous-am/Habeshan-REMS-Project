@@ -6,16 +6,19 @@ import (
 	"github.com/google/uuid"
 )
 
+// ClockInRequest payload for real-time online clock-in
 type ClockInRequest struct {
 	RecordUUID uuid.UUID `json:"record_uuid"`
 	DeviceHash string    `json:"device_hash"`
 }
 
+// ClockOutRequest payload for real-time online clock-out
 type ClockOutRequest struct {
 	RecordUUID uuid.UUID `json:"record_uuid"`
 	DeviceHash string    `json:"device_hash"`
 }
 
+// SyncRecordRequest represents an individual attendance log sent from offline queue
 type SyncRecordRequest struct {
 	RecordUUID string `json:"record_uuid"`
 	OrgID      string `json:"org_id"`
@@ -25,21 +28,25 @@ type SyncRecordRequest struct {
 	DeviceHash string `json:"device_hash"`
 }
 
+// BatchSyncRequest accepts batch synced array or single record fallback
 type BatchSyncRequest struct {
 	Records []SyncRecordRequest `json:"records"`
 }
 
+// SyncResult defines individual record sync result returned to the client
 type SyncResult struct {
 	RecordUUID string `json:"record_uuid"`
-	Status     string `json:"status"` // "SYNCED_VERIFIED", "REJECTED_TAMPERED", or "ALREADY_SYNCED"
+	Status     string `json:"status"` // "SYNCED_VERIFIED", "REJECTED_TAMPERED", "ALREADY_SYNCED"
 	Message    string `json:"message,omitempty"`
 }
 
+// BatchSyncResponse standardizes batch processing output
 type BatchSyncResponse struct {
 	Processed int          `json:"processed"`
 	Results   []SyncResult `json:"results"`
 }
 
+// AttendanceResponse standardizes online endpoint JSON responses
 type AttendanceResponse struct {
 	ID         uuid.UUID  `json:"id"`
 	UserID     uuid.UUID  `json:"user_id"`

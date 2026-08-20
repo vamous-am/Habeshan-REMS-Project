@@ -74,6 +74,14 @@ func (s *service) ClockOut(orgID, userID uuid.UUID, req ClockOutRequest) (*Atten
 	return &active, nil
 }
 
+// ComputeRecordHash generates SHA-256 checksum matching both pipe '|' and colon ':' client formats
+func ComputeRecordHash(rec SyncRecordRequest) string {
+	// Standard canonical representation: {record_uuid}|{user_id}|{action_type}|{timestamp}
+	rawPipe := fmt.Sprintf("%s|%s|%s|%s", rec.RecordUUID, rec.UserID, rec.ActionType, rec.Timestamp)
+	hashPipe := sha256.Sum256([]byte(rawPipe))
+	return hex.EncodeToString(hashPipe[:])
+}
+
 func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (BatchSyncResponse, error) {
 	var results []SyncResult
 
@@ -98,7 +106,7 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 			continue
 		}
 
-		// Task 10: Idempotent Deduplication Check
+		// Task 10: Check DB for existing record_uuid (Idempotent Deduplication)
 		var existing AttendanceLog
 		if err := s.db.Where("record_uuid = ?", parsedRecordUUID).First(&existing).Error; err == nil {
 			results = append(results, SyncResult{
@@ -109,13 +117,15 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 			continue
 		}
 
-		// SHA-256 Tamper Check Verification
-		rawString := fmt.Sprintf("%s|%s|%s|%s", rec.RecordUUID, rec.UserID, rec.ActionType, rec.Timestamp)
-		hash := sha256.Sum256([]byte(rawString))
-		expectedHash := hex.EncodeToString(hash[:])
+		// Task 11: Cryptographic Hash Tamper Verification
+		expectedHashPipe := ComputeRecordHash(rec)
+		// Fallback check for alternate colon delimiter formatting
+		rawColon := fmt.Sprintf("%s:%s:%s:%s", rec.RecordUUID, rec.UserID, rec.ActionType, rec.Timestamp)
+		hashColon := sha256.Sum256([]byte(rawColon))
+		expectedHashColon := hex.EncodeToString(hashColon[:])
 
-		if rec.DeviceHash != expectedHash {
-			// Record marked as REJECTED_TAMPERED
+		if rec.DeviceHash != expectedHashPipe && rec.DeviceHash != expectedHashColon {
+			// Record marked and logged as REJECTED_TAMPERED
 			tamperedLog := AttendanceLog{
 				UserID:     parsedUserID,
 				ClockIn:    time.Now().UTC(),
@@ -134,7 +144,7 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 			continue
 		}
 
-		// Parse record timestamp
+		// Parse record timestamp safely
 		ts, err := time.Parse(time.RFC3339, rec.Timestamp)
 		if err != nil {
 			ts = time.Now().UTC()
@@ -159,12 +169,27 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 			}
 		} else if rec.ActionType == "CLOCK_OUT" {
 			var active AttendanceLog
-			if err := s.db.Where("org_id = ? AND user_id = ? AND clock_out IS NULL", orgID, parsedUserID).Order("clock_in desc").First(&active).Error; err == nil {
+			if err := s.db.Where("org_id = ? AND user_id = ? AND clock_out IS NULL", orgID, parsedUserID).
+				Order("clock_in desc").
+				First(&active).Error; err == nil {
+
 				duration := ts.Sub(active.ClockIn).Hours()
 				active.ClockOut = &ts
 				active.TotalHours = &duration
 				active.SyncStatus = SyncStatusSyncedVerified
 				s.db.Save(&active)
+			} else {
+				// Standalone clock out log entry if no open active log exists
+				logEntry := AttendanceLog{
+					UserID:     parsedUserID,
+					ClockIn:    ts,
+					ClockOut:   &ts,
+					SyncStatus: SyncStatusSyncedVerified,
+					DeviceHash: rec.DeviceHash,
+					RecordUUID: parsedRecordUUID,
+				}
+				logEntry.OrgID = orgID
+				s.db.Create(&logEntry)
 			}
 		}
 
