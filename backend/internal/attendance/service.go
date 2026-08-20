@@ -1,7 +1,9 @@
 package attendance
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/csv"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -16,10 +18,17 @@ var (
 	ErrNoActiveClockIn     = errors.New("no active clock-in session found")
 )
 
+type UserExportFilter struct {
+	UserID    *uuid.UUID
+	StartDate *time.Time
+	EndDate   *time.Time
+}
+
 type Service interface {
 	ClockIn(orgID, userID uuid.UUID, req ClockInRequest) (*AttendanceLog, error)
 	ClockOut(orgID, userID uuid.UUID, req ClockOutRequest) (*AttendanceLog, error)
 	SyncBatch(orgID uuid.UUID, reqs []SyncRecordRequest) (BatchSyncResponse, error)
+	ExportLogs(orgID uuid.UUID, filter UserExportFilter) ([]byte, error)
 }
 
 type service struct {
@@ -76,7 +85,6 @@ func (s *service) ClockOut(orgID, userID uuid.UUID, req ClockOutRequest) (*Atten
 
 // ComputeRecordHash generates SHA-256 checksum matching both pipe '|' and colon ':' client formats
 func ComputeRecordHash(rec SyncRecordRequest) string {
-	// Standard canonical representation: {record_uuid}|{user_id}|{action_type}|{timestamp}
 	rawPipe := fmt.Sprintf("%s|%s|%s|%s", rec.RecordUUID, rec.UserID, rec.ActionType, rec.Timestamp)
 	hashPipe := sha256.Sum256([]byte(rawPipe))
 	return hex.EncodeToString(hashPipe[:])
@@ -119,13 +127,11 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 
 		// Task 11: Cryptographic Hash Tamper Verification
 		expectedHashPipe := ComputeRecordHash(rec)
-		// Fallback check for alternate colon delimiter formatting
 		rawColon := fmt.Sprintf("%s:%s:%s:%s", rec.RecordUUID, rec.UserID, rec.ActionType, rec.Timestamp)
 		hashColon := sha256.Sum256([]byte(rawColon))
 		expectedHashColon := hex.EncodeToString(hashColon[:])
 
 		if rec.DeviceHash != expectedHashPipe && rec.DeviceHash != expectedHashColon {
-			// Record marked and logged as REJECTED_TAMPERED
 			tamperedLog := AttendanceLog{
 				UserID:     parsedUserID,
 				ClockIn:    time.Now().UTC(),
@@ -144,7 +150,6 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 			continue
 		}
 
-		// Parse record timestamp safely
 		ts, err := time.Parse(time.RFC3339, rec.Timestamp)
 		if err != nil {
 			ts = time.Now().UTC()
@@ -179,7 +184,6 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 				active.SyncStatus = SyncStatusSyncedVerified
 				s.db.Save(&active)
 			} else {
-				// Standalone clock out log entry if no open active log exists
 				logEntry := AttendanceLog{
 					UserID:     parsedUserID,
 					ClockIn:    ts,
@@ -203,4 +207,65 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 		Processed: len(results),
 		Results:   results,
 	}, nil
+}
+
+// ExportLogs handles Task 13: Querying database and formatting CSV binary stream
+func (s *service) ExportLogs(orgID uuid.UUID, filter UserExportFilter) ([]byte, error) {
+	var logs []AttendanceLog
+	query := s.db.Where("org_id = ?", orgID)
+
+	if filter.UserID != nil {
+		query = query.Where("user_id = ?", *filter.UserID)
+	}
+	if filter.StartDate != nil {
+		query = query.Where("clock_in >= ?", *filter.StartDate)
+	}
+	if filter.EndDate != nil {
+		query = query.Where("clock_in <= ?", *filter.EndDate)
+	}
+
+	if err := query.Order("clock_in DESC").Find(&logs).Error; err != nil {
+		return nil, err
+	}
+
+	buf := new(bytes.Buffer)
+	writer := csv.NewWriter(buf)
+
+	// CSV Header
+	header := []string{"Record UUID", "User ID", "Clock In", "Clock Out", "Total Hours", "Sync Status"}
+	if err := writer.Write(header); err != nil {
+		return nil, err
+	}
+
+	for _, l := range logs {
+		clockOutStr := "N/A"
+		if l.ClockOut != nil {
+			clockOutStr = l.ClockOut.Format(time.RFC3339)
+		}
+
+		totalHrsStr := "0.00"
+		if l.TotalHours != nil {
+			totalHrsStr = fmt.Sprintf("%.2f", *l.TotalHours)
+		}
+
+		row := []string{
+			l.RecordUUID.String(),
+			l.UserID.String(),
+			l.ClockIn.Format(time.RFC3339),
+			clockOutStr,
+			totalHrsStr,
+			string(l.SyncStatus),
+		}
+
+		if err := writer.Write(row); err != nil {
+			return nil, err
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }

@@ -1,8 +1,10 @@
 package attendance
 
 import (
+	"fmt"
 	"errors"
 	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -125,4 +127,44 @@ func (h *Handler) SyncBatch(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(res)
+}
+
+// ExportLogs handles Task 13: GET /attendance/export
+func (h *Handler) ExportLogs(c *fiber.Ctx) error {
+	var orgID uuid.UUID
+	if val := c.Locals("org_id"); val != nil {
+		orgID, _ = val.(uuid.UUID)
+	}
+
+	// Filter query options
+	var filter UserExportFilter
+	if targetUser := c.Query("user_id"); targetUser != "" {
+		if uUUID, err := uuid.Parse(targetUser); err == nil {
+			filter.UserID = &uUUID
+		}
+	}
+	if start := c.Query("start_date"); start != "" {
+		if stTime, err := time.Parse("2006-01-02", start); err == nil {
+			filter.StartDate = &stTime
+		}
+	}
+	if end := c.Query("end_date"); end != "" {
+		if endTime, err := time.Parse("2006-01-02", end); err == nil {
+			// Extend to end-of-day boundary
+			endTime = endTime.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+			filter.EndDate = &endTime
+		}
+	}
+
+	csvData, err := h.service.ExportLogs(orgID, filter)
+	if err != nil {
+		log.Println("❌ EXPORT ATTENDANCE ERROR:", err)
+		return common.Fail(c, fiber.StatusInternalServerError, "Failed to generate attendance report")
+	}
+
+	fileName := fmt.Sprintf("attendance_report_%s.csv", time.Now().Format("20060102_150405"))
+
+	c.Set("Content-Type", "text/csv")
+	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
+	return c.Status(fiber.StatusOK).Send(csvData)
 }
