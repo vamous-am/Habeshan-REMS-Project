@@ -1,27 +1,78 @@
 import React, { useState, useEffect } from 'react';
 import { clockInApi, clockOutApi, AttendanceRecord } from './attendanceApi';
 import './ClockWidget.css'; 
+import { recordOfflineAttendance } from './offlineService';
+
+// Note: Replace these with real dynamic IDs from your Auth Context/Hook if available
+const CURRENT_ORG_ID = 'current-org';
+const CURRENT_USER_ID = 'current-user';
 
 export const ClockWidget: React.FC = () => {
   const [activeSession, setActiveSession] = useState<AttendanceRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const handleClockIn = async () => {
     setLoading(true);
     setError(null);
+    const nowISO = new Date().toISOString();
+
+    if (!navigator.onLine) {
+      try {
+        // Fix TS(2554): Pass orgId, userId, and actionType
+        await recordOfflineAttendance(CURRENT_ORG_ID, CURRENT_USER_ID, 'CLOCK_IN');
+        setActiveSession({
+          record_uuid: crypto.randomUUID(),
+          user_id: CURRENT_USER_ID,
+          clock_in: nowISO,
+          sync_status: 'OFFLINE_LOGGED',
+        } as AttendanceRecord);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to record offline clock-in.';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       const record = await clockInApi();
       setActiveSession(record);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to record clock-in.';
-      setError(message);
+      // Fallback to offline storage if online API request fails
+      console.warn('Online Clock In failed, queueing offline:', err);
+      try {
+        // Fix TS(2554): Pass orgId, userId, and actionType
+        await recordOfflineAttendance(CURRENT_ORG_ID, CURRENT_USER_ID, 'CLOCK_IN');
+        setActiveSession({
+          record_uuid: crypto.randomUUID(),
+          user_id: CURRENT_USER_ID,
+          clock_in: nowISO,
+          sync_status: 'OFFLINE_LOGGED',
+        } as AttendanceRecord);
+      } catch (offlineErr) {
+        const message = offlineErr instanceof Error ? offlineErr.message : 'Failed to record clock-in.';
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -30,12 +81,52 @@ export const ClockWidget: React.FC = () => {
   const handleClockOut = async () => {
     setLoading(true);
     setError(null);
+    const nowISO = new Date().toISOString();
+
+    if (!navigator.onLine) {
+      try {
+        // Fix TS(2554): Pass orgId, userId, and actionType
+        await recordOfflineAttendance(CURRENT_ORG_ID, CURRENT_USER_ID, 'CLOCK_OUT');
+        setActiveSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                clock_out: nowISO,
+                sync_status: 'OFFLINE_LOGGED',
+              } as AttendanceRecord
+            : null
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to record offline clock-out.';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       const record = await clockOutApi();
       setActiveSession(record);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to record clock-out.';
-      setError(message);
+      // Fallback to offline storage if online API request fails
+      console.warn('Online Clock Out failed, queueing offline:', err);
+      try {
+        // Fix TS(2554): Pass orgId, userId, and actionType
+        await recordOfflineAttendance(CURRENT_ORG_ID, CURRENT_USER_ID, 'CLOCK_OUT');
+        setActiveSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                clock_out: nowISO,
+                sync_status: 'OFFLINE_LOGGED',
+              } as AttendanceRecord
+            : null
+        );
+      } catch (offlineErr) {
+        const message = offlineErr instanceof Error ? offlineErr.message : 'Failed to record clock-out.';
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -61,8 +152,15 @@ export const ClockWidget: React.FC = () => {
           <div className="text-2xl font-mono font-bold tracking-wider">
             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
-          <div className="text-[10px] uppercase tracking-widest text-indigo-300 font-semibold mt-0.5">
-            Local Time
+          <div className="flex items-center justify-end gap-1.5 mt-1">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
+              }`}
+            />
+            <span className="text-[10px] uppercase tracking-widest text-indigo-300 font-semibold">
+              {isOnline ? 'Network Online' : 'Offline Mode'}
+            </span>
           </div>
         </div>
       </div>
@@ -126,8 +224,14 @@ export const ClockWidget: React.FC = () => {
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
             <span className="text-slate-400 font-medium block mb-1">Sync State</span>
-            <span className="text-indigo-600 font-bold text-xs uppercase tracking-wider">
-              {activeSession?.sync_status || 'ONLINE'}
+            <span
+              className={`font-bold text-xs uppercase tracking-wider ${
+                activeSession?.sync_status === 'OFFLINE_LOGGED'
+                  ? 'text-amber-600'
+                  : 'text-indigo-600'
+              }`}
+            >
+              {activeSession?.sync_status || (isOnline ? 'ONLINE' : 'OFFLINE')}
             </span>
           </div>
         </div>
