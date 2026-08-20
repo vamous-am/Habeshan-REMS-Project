@@ -2,48 +2,73 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/google/uuid"
-	"github.com/habeshan-rems/backend/internal/attendance"
-	"github.com/habeshan-rems/backend/internal/common"
 	"github.com/joho/godotenv"
+
+	"github.com/habeshan-rems/backend/internal/attendance"
+	"github.com/habeshan-rems/backend/internal/auth"
+	"github.com/habeshan-rems/backend/internal/common"
 )
 
 func main() {
+	// 1. Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Println("no .env file found, relying on real environment variables")
+		log.Println("no .env file found, relying on environment variables")
 	}
 
+	// 2. Initialize Database connection
 	db := common.InitDB()
 
-	// Automatically create the attendance_logs table in PostgreSQL
+	// 3. Auto-Migrate Database Schemas
 	if err := db.AutoMigrate(&attendance.AttendanceLog{}); err != nil {
 		log.Fatalf("❌ Schema migration failed: %v", err)
 	}
 	log.Println("✅ Attendance database table ready")
 
-	app := fiber.New()
+	// 4. Initialize Fiber App
+	app := fiber.New(fiber.Config{
+		AppName: "Habeshan REMS API v1",
+	})
 
-	// Enable CORS for Vite frontend
+	// 5. Configure CORS middleware (for Vite React frontend)
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "http://localhost:5173, http://localhost:3000",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, HEAD, PUT, DELETE, PATCH",
 	}))
 
-	// Temporary mock auth middleware until Dev 1 finishes JWT setup
+	// 6. Temporary mock auth middleware for Dev testing (injects org_id & user_id)
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("org_id", uuid.MustParse("11111111-1111-1111-1111-111111111111"))
 		c.Locals("user_id", uuid.MustParse("22222222-2222-2222-2222-222222222222"))
 		return c.Next()
 	})
 
+	// 7. Health Check Endpoint
+	app.Get("/api/v1/health", func(c *fiber.Ctx) error {
+		return common.OK(c, fiber.Map{"status": "ok"})
+	})
+
+	// 8. Register Feature Routes
+	auth.RegisterRoutes(app, db)
 	attendance.RegisterRoutes(app, db)
 
-	log.Println("🚀 Server listening on http://localhost:8080")
-	if err := app.Listen(":8080"); err != nil {
+	// 9. Start HTTP Server
+	port := getEnv("PORT", "8080")
+	log.Printf("🚀 Server listening on port :%s", port)
+	if err := app.Listen(":" + port); err != nil {
 		log.Fatalf("❌ Server failed to start: %v", err)
 	}
+}
+
+// Helper function to read environment variables with fallback
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
