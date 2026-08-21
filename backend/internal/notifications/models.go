@@ -4,31 +4,36 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/habeshan-rems/backend/internal/auth"
+	"github.com/habeshan-rems/backend/internal/common"
 )
 
-// Notification — NOT embedding common.BaseModel (no updated_at/deleted_at
-// in the frozen schema).
 type Notification struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrgID     uuid.UUID `gorm:"type:uuid;not null;index"`
-	UserID    uuid.UUID `gorm:"type:uuid;not null;index"`
-	Type      string    `gorm:"type:varchar(50);not null"` // e.g. timesheet_approved, timesheet_rejected, clock_in_reminder
-	Message   string    `gorm:"type:text;not null"`
-	Read      bool      `gorm:"not null;default:false"`
-	CreatedAt time.Time `gorm:"not null;default:now()"`
+	common.ID
+	common.TenantScoped
+
+	UserID    uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	Type      string    `gorm:"type:varchar(50);not null" json:"type"`
+	Message   string    `gorm:"type:text;not null" json:"message"`
+	Read      bool      `gorm:"not null;default:false" json:"read"`
+	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+
+	Organization auth.Organization `gorm:"foreignKey:OrgID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
+	User         auth.User         `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
 func (Notification) TableName() string {
 	return "notifications"
 }
 
-// TelegramSubscriber — also NOT embedding BaseModel. user_id is the PK,
-// no id/org_id/deleted_at at all.
 type TelegramSubscriber struct {
-	UserID   uuid.UUID `gorm:"type:uuid;primaryKey"`
-	ChatID   string    `gorm:"type:varchar(50);not null"`
-	IsActive bool      `gorm:"not null;default:true"`
-	LinkedAt time.Time `gorm:"not null;default:now()"`
+	UserID   uuid.UUID `gorm:"type:uuid;primaryKey" json:"user_id"`
+	ChatID   string    `gorm:"type:varchar(50);not null" json:"chat_id"`
+	IsActive bool      `gorm:"not null;default:true" json:"is_active"`
+	LinkedAt time.Time `gorm:"not null;default:now()" json:"linked_at"`
+
+	User auth.User `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
 func (TelegramSubscriber) TableName() string {
