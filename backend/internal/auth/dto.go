@@ -1,4 +1,5 @@
 package auth
+
 // DTOs (Data Transfer Objects) — the exact shapes the API accepts and returns.
 
 // RegisterRequest is the body for POST /auth/register.

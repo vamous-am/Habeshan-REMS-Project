@@ -1,5 +1,5 @@
 package migrations
- 
+
 import (
 	"fmt"
 	"log"

@@ -3,15 +3,16 @@ package auth
 import (
 	"errors"
 	"os"
-	"time"	
+	"time"
 
-    "strings" 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/common"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"strings"
 )
+
 // Service holds the DB connection and contains all auth business logic.
 type Service struct {
 	db *gorm.DB
@@ -20,6 +21,7 @@ type Service struct {
 func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
+
 // ----Register -------
 // Register creates a new Organization and its first User in one transaction.
 // Role is always forced to employee (FR-AUTH-08).
@@ -62,10 +64,10 @@ func (s *Service) Register(req RegisterRequest) (LoginResponse, error) {
 		}
 
 		if err := tx.Create(&user).Error; err != nil {
-            if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "23505") {
-            return common.ErrConflict
-          }
-        return common.ErrInternal
+			if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "23505") {
+				return common.ErrConflict
+			}
+			return common.ErrInternal
 		}
 
 		// 3. Issue JWT immediately so the user is logged in after registering
@@ -243,6 +245,7 @@ func (s *Service) Login(req LoginRequest) (LoginResponse, error) {
 		User:  toUserDTO(user),
 	}, nil
 }
+
 // ----JWT -------
 
 // Claims is the JWT payload. Published in contracts/api/auth.md.
@@ -273,6 +276,7 @@ func issueJWT(user User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }
+
 // --- Helpers -----
 
 // toUserDTO converts a User model to the safe public DTO (no password).

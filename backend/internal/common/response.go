@@ -5,11 +5,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-
 // Envelope is the standard API response shape.
 // { "status": "success"|"fail", "data": ..., "message": "..." }
 type Envelope struct {
-	Status  string `json:"status"`  // "success" | "fail"
+	Status  string `json:"status"` // "success" | "fail"
 	Data    any    `json:"data,omitempty"`
 	Message string `json:"message,omitempty"`
 }
@@ -34,22 +33,23 @@ func Fail(c *fiber.Ctx, status int, message string) error {
 		Message: message,
 	})
 }
+
 // ─────────────────────────────────────────────────────────────
 // Sentinel errors — return these from services and repositories.
 // ──────────────────────────────────────
-var(
-	ErrNotFound = errors.New("resource not found")
-	ErrConflict = errors.New("resource already exists")
-	ErrInternal = errors.New("internal server error")
-	ErrBadRequest = errors.New("bad request")
+var (
+	ErrNotFound     = errors.New("resource not found")
+	ErrConflict     = errors.New("resource already exists")
+	ErrInternal     = errors.New("internal server error")
+	ErrBadRequest   = errors.New("bad request")
 	ErrUnauthorized = errors.New("unauthorized")
-	ErrForbidden = errors.New("forbidden")
+	ErrForbidden    = errors.New("forbidden")
 )
+
 // errStatus is the single place that maps sentinel errors → HTTP status + message.
 var errStatus = map[error]struct {
 	Status  int
 	Message string
-
 }{
 	ErrNotFound:     {fiber.StatusNotFound, "resource not found"},
 	ErrUnauthorized: {fiber.StatusUnauthorized, "unauthorized"},
@@ -58,6 +58,7 @@ var errStatus = map[error]struct {
 	ErrBadRequest:   {fiber.StatusBadRequest, "bad request"},
 	ErrInternal:     {fiber.StatusInternalServerError, "internal server error"},
 }
+
 // HandleError converts a sentinel error into the correct HTTP response.
 // Unrecognized errors fall back to 500 and never leak internal details.
 func HandleError(c *fiber.Ctx, err error) error {
