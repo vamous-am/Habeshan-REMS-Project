@@ -23,3 +23,34 @@ func GetManagerDashboard(c *fiber.Ctx) error {
 		},
 	})
 }
+
+// GetLeaderboard returns mock leaderboard data for now.
+//
+// Task 07 is only the leaderboard shell.
+// Real ranking data comes later once attendance and task-timer
+// aggregation is available.
+func GetLeaderboard(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status": "success",
+		"data": fiber.Map{
+			"opted_out": false,
+			"entries": []fiber.Map{
+				{
+					"rank":                  1,
+					"employee_name":         "Employee A",
+					"completion_percentage": 94,
+				},
+				{
+					"rank":                  2,
+					"employee_name":         "Employee B",
+					"completion_percentage": 87,
+				},
+				{
+					"rank":                  3,
+					"employee_name":         "Employee C",
+					"completion_percentage": 81,
+				},
+			},
+		},
+	})
+}
