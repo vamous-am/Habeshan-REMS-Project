@@ -11,10 +11,29 @@ type RegisterRequest struct {
 	Phone    string `json:"phone" validate:"omitempty,max=20"`
 }
 
+// LookupRequest is the body for POST /auth/lookup.
+// Step 1 of the two-step login flow — returns which orgs have this email.
+type LookupRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// OrgSummary is one entry in a LookupResponse — only what the login screen needs.
+type OrgSummary struct {
+	OrgID   string `json:"org_id"`
+	OrgName string `json:"org_name"`
+}
+
+// LookupResponse is the body returned by POST /auth/lookup.
+type LookupResponse struct {
+	Orgs []OrgSummary `json:"orgs"`
+}
+
 // LoginRequest is the body for POST /auth/login.
+// org_id is required — use POST /auth/lookup first to discover it.
 type LoginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
+	Email    string `json:"email"    validate:"required,email"`
 	Password string `json:"password" validate:"required"`
+	OrgID    string `json:"org_id"   validate:"required,uuid"`
 }
 
 // LoginResponse is returned after a successful login.

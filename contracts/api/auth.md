@@ -11,6 +11,40 @@ against it.
 
 ## Endpoints
 
+### POST /api/v1/auth/lookup
+**Public** — no token required. Step 1 of the two-step login flow.
+
+Request body:
+```json
+{
+  "email": "string (required)"
+}
+```
+
+Response `200`:
+```json
+{
+  "status": "success",
+  "data": {
+    "orgs": [
+      { "org_id": "uuid", "org_name": "Acme Corp" },
+      { "org_id": "uuid", "org_name": "Beta Ltd" }
+    ]
+  }
+}
+```
+
+> If the email is not found, `orgs` is an empty array — not a 404.
+> This avoids leaking whether an email is registered; the login step
+> returns the same `401` either way.
+
+Frontend behavior:
+- If `orgs` has one entry → skip the picker, pass that `org_id` directly to login
+- If `orgs` has multiple entries → show an org-picker UI before the password step
+- If `orgs` is empty → show "no account found" message
+
+---
+
 ### POST /api/v1/auth/register
 **Public** — no token required.
 
@@ -64,35 +98,29 @@ sprint planning — do not silently work around it in a feature branch.
 ---
 
 ### POST /api/v1/auth/login
-**Public** — no token required.
+**Public** — no token required. Step 2 of the two-step login flow.
+
+Use `POST /auth/lookup` first to get the `org_id` for the user's organization.
 
 Request body:
 ```json
 {
   "email":    "string (required)",
-  "password": "string (required)"
+  "password": "string (required)",
+  "org_id":   "uuid (required)"
 }
 ```
 
 Response `200`: same `user`/`token` shape as the register response above.
 
-> Wrong email and wrong password both return `401` with the same message,
-> to prevent user enumeration.
+> Wrong email, wrong org_id, and wrong password all return `401` with the
+> same message, to prevent user enumeration.
 
 Errors:
 | Status | When |
 |--------|------|
-| `401`  | Email not found, or password incorrect (same message for both) |
-
-**⚠️ Known limitation:** `Login` looks up by email only — **not** scoped to
-an organization (`WHERE email = ? AND deleted_at IS NULL`). The schema
-enforces `UNIQUE(org_id, email) WHERE deleted_at IS NULL`, which explicitly
-allows the same email to exist under two different organizations. If that
-ever happens, login returns an arbitrary one of the matching rows — not
-necessarily the one the caller intended. Rare today since `Register` always
-creates one org+user together in a single call, but it's a landmine for
-later (e.g. an invite-based multi-org flow). Track separately from this
-branch.
+| `400`  | Missing `email`, `password`, or `org_id` |
+| `401`  | Email not found in that org, or password incorrect (same message for both) |
 
 ---
 

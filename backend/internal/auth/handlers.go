@@ -37,6 +37,25 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 	return common.Created(c, resp)
 }
 
+// Lookup handles POST /api/v1/auth/lookup
+// Step 1 of the two-step login flow — returns which orgs have this email.
+func (h *Handler) Lookup(c *fiber.Ctx) error {
+	var req LookupRequest
+	if err := c.BodyParser(&req); err != nil {
+		return common.Fail(c, fiber.StatusBadRequest, "invalid request body")
+	}
+	if req.Email == "" {
+		return common.Fail(c, fiber.StatusBadRequest, "email is required")
+	}
+
+	resp, err := h.svc.Lookup(req)
+	if err != nil {
+		return common.HandleError(c, err)
+	}
+
+	return common.OK(c, resp)
+}
+
 // Login handles POST /api/v1/auth/login
 func (h *Handler) Login(c *fiber.Ctx) error {
 	var req LoginRequest
@@ -44,8 +63,8 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		return common.Fail(c, fiber.StatusBadRequest, "invalid request body")
 	}
 
-	if req.Email == "" || req.Password == "" {
-		return common.Fail(c, fiber.StatusBadRequest, "email and password are required")
+	if req.Email == "" || req.Password == "" || req.OrgID == "" {
+		return common.Fail(c, fiber.StatusBadRequest, "email, password and org_id are required")
 	}
 
 	resp, err := h.svc.Login(req)
