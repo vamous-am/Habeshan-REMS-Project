@@ -41,7 +41,7 @@ func main() {
 
 	db := common.InitDB()
 
-	user, err := admin.PromoteAdmin(db, admin.PromoteAdminInput{OrgID: orgID, Email: *email})
+	user, err := admin.NewService(db).PromoteAdmin(admin.PromoteAdminInput{OrgID: orgID, Email: *email})
 	if err != nil {
 		if errors.Is(err, admin.ErrAdminAlreadyExists) {
 			log.Fatalf("aborted: organization %s already has an admin — nothing changed", orgID)
