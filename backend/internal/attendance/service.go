@@ -20,6 +20,9 @@ type Service interface {
 	ClockIn(orgID, userID uuid.UUID, req ClockInRequest) (*AttendanceLog, error)
 	ClockOut(orgID, userID uuid.UUID, req ClockOutRequest) (*AttendanceLog, error)
 	SyncBatch(orgID uuid.UUID, reqs []SyncRecordRequest) (BatchSyncResponse, error)
+	GetSelfHistory(orgID, userID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error)
+	GetTeamHistory(orgID, managerID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error)
+	GetOrgHistory(orgID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error)
 }
 
 type service struct {
@@ -75,7 +78,6 @@ func (s *service) ClockOut(orgID, userID uuid.UUID, req ClockOutRequest) (*Atten
 	return &active, nil
 }
 
-// ComputeRecordHash generates SHA-256 checksum matching pipe '|' client format
 func ComputeRecordHash(rec SyncRecordRequest) string {
 	rawPipe := fmt.Sprintf("%s|%s|%s|%s", rec.RecordUUID, rec.UserID, rec.ActionType, rec.Timestamp)
 	hashPipe := sha256.Sum256([]byte(rawPipe))
@@ -106,7 +108,6 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 			continue
 		}
 
-		// Task 10: Check DB for existing record_uuid (Idempotent Deduplication)
 		var existing AttendanceLog
 		if err := s.db.Where("record_uuid = ?", parsedRecordUUID).First(&existing).Error; err == nil {
 			results = append(results, SyncResult{
@@ -117,7 +118,6 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 			continue
 		}
 
-		// Task 11: Cryptographic Hash Tamper Verification
 		expectedHashPipe := ComputeRecordHash(rec)
 		rawColon := fmt.Sprintf("%s:%s:%s:%s", rec.RecordUUID, rec.UserID, rec.ActionType, rec.Timestamp)
 		hashColon := sha256.Sum256([]byte(rawColon))
@@ -199,4 +199,88 @@ func (s *service) SyncBatch(orgID uuid.UUID, records []SyncRecordRequest) (Batch
 		Processed: len(results),
 		Results:   results,
 	}, nil
+}
+
+func (s *service) buildQuery(base *gorm.DB, query AttendanceHistoryQuery) (*gorm.DB, int, int) {
+	page := query.Page
+	if page <= 0 {
+		page = 1
+	}
+	limit := query.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	if query.StartDate != nil && *query.StartDate != "" {
+		base = base.Where("clock_in >= ?", *query.StartDate)
+	}
+	if query.EndDate != nil && *query.EndDate != "" {
+		base = base.Where("clock_in <= ?", *query.EndDate)
+	}
+
+	return base, page, limit
+}
+
+func (s *service) fetchPaginated(dbQuery *gorm.DB, page, limit int) (*AttendanceHistoryResponse, error) {
+	var total int64
+	if err := dbQuery.Model(&AttendanceLog{}).Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	var logs []AttendanceLog
+	offset := (page - 1) * limit
+	if err := dbQuery.Order("clock_in desc").Limit(limit).Offset(offset).Find(&logs).Error; err != nil {
+		return nil, err
+	}
+
+	var responses []AttendanceResponse
+	for _, l := range logs {
+		responses = append(responses, AttendanceResponse{
+			ID:         l.ID.ID,
+			UserID:     l.UserID,
+			ClockIn:    l.ClockIn,
+			ClockOut:   l.ClockOut,
+			TotalHours: l.TotalHours,
+			SyncStatus: l.SyncStatus,
+			DeviceHash: l.DeviceHash,
+			RecordUUID: l.RecordUUID,
+		})
+	}
+
+	return &AttendanceHistoryResponse{
+		Total: int(total),
+		Page:  page,
+		Limit: limit,
+		Data:  responses,
+	}, nil
+}
+
+// GetSelfHistory fetches self-scoped attendance logs (Task 15)
+func (s *service) GetSelfHistory(orgID, userID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error) {
+	base := s.db.Where("org_id = ? AND user_id = ?", orgID, userID)
+	dbQuery, page, limit := s.buildQuery(base, query)
+	return s.fetchPaginated(dbQuery, page, limit)
+}
+
+// GetTeamHistory fetches team-scoped attendance logs (Task 15)
+func (s *service) GetTeamHistory(orgID, managerID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error) {
+	base := s.db.Where("org_id = ?", orgID)
+	if query.TeamID != nil && *query.TeamID != uuid.Nil {
+		base = base.Where("team_id = ?", *query.TeamID)
+	}
+	if query.UserID != nil && *query.UserID != uuid.Nil {
+		base = base.Where("user_id = ?", *query.UserID)
+	}
+	dbQuery, page, limit := s.buildQuery(base, query)
+	return s.fetchPaginated(dbQuery, page, limit)
+}
+
+// GetOrgHistory fetches organization-wide attendance logs (Task 15)
+func (s *service) GetOrgHistory(orgID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error) {
+	base := s.db.Where("org_id = ?", orgID)
+	if query.UserID != nil && *query.UserID != uuid.Nil {
+		base = base.Where("user_id = ?", *query.UserID)
+	}
+	dbQuery, page, limit := s.buildQuery(base, query)
+	return s.fetchPaginated(dbQuery, page, limit)
 }

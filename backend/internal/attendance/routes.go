@@ -13,4 +13,9 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	api.Post("/clock-in", handler.ClockIn)
 	api.Post("/clock-out", handler.ClockOut)
 	api.Post("/sync", handler.SyncBatch)
+
+	// Scoped history views (Task 15)
+	api.Get("/me", handler.GetSelfHistory)
+	api.Get("/team", handler.GetTeamHistory)
+	api.Get("/org", handler.GetOrgHistory)
 }

@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AttendanceLog",
+  "description": "PostgreSQL database row schema published by Dev 2 for Dev 4 timesheet aggregations (Task 16).",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Primary key UUID"
+    },
+    "org_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Organization tenant UUID"
+    },
+    "user_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "User account UUID"
+    },
+    "clock_in": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when clock-in was recorded (UTC)"
+    },
+    "clock_out": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp when clock-out was recorded (UTC)"
+    },
+    "total_hours": {
+      "type": ["number", "null"],
+      "description": "Calculated session duration in decimal hours (e.g. 8.5)"
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": ["OFFLINE_LOGGED", "PENDING_SYNC", "SYNCED_VERIFIED", "REJECTED_TAMPERED"],
+      "description": "Verification state of the attendance log"
+    },
+    "device_hash": {
+      "type": "string",
+      "description": "SHA-256 signature calculated on the client device"
+    },
+    "record_uuid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Client-generated unique ID for idempotent sync verification"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "org_id",
+    "user_id",
+    "clock_in",
+    "sync_status",
+    "device_hash",
+    "record_uuid"
+  ]
+}

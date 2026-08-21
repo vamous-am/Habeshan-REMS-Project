@@ -57,3 +57,21 @@ type AttendanceResponse struct {
 	DeviceHash string     `json:"device_hash"`
 	RecordUUID uuid.UUID  `json:"record_uuid"`
 }
+
+// AttendanceHistoryQuery query parameters for filtering history (Task 15)
+type AttendanceHistoryQuery struct {
+	StartDate *string    `query:"start_date"`
+	EndDate   *string    `query:"end_date"`
+	UserID    *uuid.UUID `query:"user_id"`
+	TeamID    *uuid.UUID `query:"team_id"`
+	Page      int        `query:"page"`
+	Limit     int        `query:"limit"`
+}
+
+// AttendanceHistoryResponse paginated list of attendance logs (Task 15)
+type AttendanceHistoryResponse struct {
+	Total int                  `json:"total"`
+	Page  int                  `json:"page"`
+	Limit int                  `json:"limit"`
+	Data  []AttendanceResponse `json:"data"`
+}
