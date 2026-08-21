@@ -9,6 +9,7 @@ import (
 	"github.com/habeshan-rems/backend/internal/common"
 	"github.com/habeshan-rems/backend/internal/dashboard"
 	"github.com/habeshan-rems/backend/internal/notifications"
+	"github.com/habeshan-rems/backend/internal/admin"
 	"github.com/joho/godotenv"
 )
 
@@ -31,6 +32,7 @@ func main() {
 	auth.RegisterRoutes(app, db)
 	dashboard.RegisterRoutes(app)
 	notifications.RegisterRoutes(app, db)
+	admin.RegisterRoutes(app, db)
 
 	port := getEnv("PORT", "8080")
 	log.Printf("🚀 server listening on :%s", port)
