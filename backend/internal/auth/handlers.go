@@ -55,3 +55,11 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 
 	return common.OK(c, resp)
 }
+// Logout handles POST /api/v1/auth/logout
+
+// There is no server-side session or token store right now, so this is a
+// no-op: the client is responsible for deleting its stored token. This
+// endpoint exists so the client always has something to call and the API
+func (h *Handler) Logout(c *fiber.Ctx) error {
+	return common.OK(c, fiber.Map{"message": "logged out"})
+}
