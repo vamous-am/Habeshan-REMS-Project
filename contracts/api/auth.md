@@ -1,8 +1,8 @@
 # Auth Contract
 
 Published by Dev 1 after `feature/dev1-auth-middleware` merges.
-This is the source of truth for Dev 2, Dev 3, and Dev 4 — read this
-before protecting any route or consuming any JWT claim.
+This is the source of truth for Dev 2, Dev 3, and Dev 4.
+read this before protecting any route or consuming any JWT claim.
 
 Change any of this only with team agreement — other slices build directly
 against it.
@@ -117,6 +117,20 @@ Authorization: Bearer <token>
 ```
 
 Signed **HS256** with `JWT_SECRET`. Fixed **24h** expiry.
+
+---
+
+### POST /api/v1/auth/logout
+No body required. Currently a no-op — there is no server-side token store,
+so this always returns `200` and does nothing server-side. The client is
+responsible for deleting its stored token. If server-side revocation
+(refresh tokens, a blacklist, etc.) is added later, it plugs into this same
+endpoint without changing its shape.
+
+Response `200`:
+```json
+{ "status": "success", "data": { "message": "logged out" } }
+```
 
 ---
 

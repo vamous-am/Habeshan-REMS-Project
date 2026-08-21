@@ -13,5 +13,8 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 
 	auth := app.Group("/api/v1/auth")
 	auth.Post("/register", h.Register) // FR-AUTH-08
-	auth.Post("/login", h.Login)       // FR-AUTH-01/02/03
+	auth.Post("/login", h.Login) 
+	      // FR-AUTH-01/02/03
+	auth.Post("/logout", h.Logout) 
+	      // FR-AUTH-04
 }
