@@ -1,3 +1,10 @@
 package migrations
 
-// TODO Dev 3: AutoMigrate task_assignments table
+import (
+	"github.com/habeshan-rems/backend/internal/tasks"
+	"gorm.io/gorm"
+)
+
+func MigrateTaskAssignments(db *gorm.DB) error {
+	return db.AutoMigrate(&tasks.TaskAssignment{})
+}

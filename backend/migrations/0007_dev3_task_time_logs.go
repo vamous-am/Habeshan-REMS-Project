@@ -1,3 +1,10 @@
 package migrations
 
-// TODO Dev 3: AutoMigrate task_time_logs table
+import (
+	"github.com/habeshan-rems/backend/internal/tasks"
+	"gorm.io/gorm"
+)
+
+func MigrateTaskTimeLogs(db *gorm.DB) error {
+	return db.AutoMigrate(&tasks.TaskTimeLog{})
+}
