@@ -87,13 +87,11 @@ Errors:
 | `400`  | Missing/invalid fields (bad email, password < 8 chars, etc.) |
 | `409`  | Email already used in the organization created by this same call — only reachable if two requests race on the same email, since each call creates a brand-new org |
 
-**🚧 Open issue — needs a decision before Branch 5/6 (admin endpoints) are usable:**
-Since `Register` is the only way an organization gets created, and every user
-it creates is `employee`, there is currently **no way for any organization to
-get its first `admin`.** Endpoints gated behind `RequireRole("admin")` are
-permanently unreachable until this is resolved (seed script, invite flow,
-"first user in a new org is admin" exception, or similar). Flag this in
-sprint planning — do not silently work around it in a feature branch.
+**Bootstrap note:** Since `Register` always creates a new org with an `employee` role, the first Admin for an org must be bootstrapped via the `cmd/seed-admin` CLI tool after the intended admin has registered normally:
+```
+go run ./cmd/seed-admin -org-id=<uuid> -email=someone@example.com
+```
+The tool refuses to run if the org already has an Admin, so it is safe to run idempotently.
 
 ---
 
