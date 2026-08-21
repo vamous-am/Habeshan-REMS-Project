@@ -7,9 +7,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/habeshan-rems/backend/internal/auth"
 	"github.com/habeshan-rems/backend/internal/common"
+	"github.com/habeshan-rems/backend/internal/dashboard"
+	"github.com/habeshan-rems/backend/internal/notifications"
 	"github.com/habeshan-rems/backend/internal/admin"
 	"github.com/joho/godotenv"
-
 )
 
 func main() {
@@ -18,7 +19,7 @@ func main() {
 	}
 
 	db := common.InitDB()
-	
+
 	app := fiber.New(fiber.Config{
 		AppName: "Habeshan REMS API v1",
 	})
@@ -27,8 +28,10 @@ func main() {
 		return common.OK(c, fiber.Map{"status": "ok"})
 	})
 
-    // Register feature routes
+	// Register feature routes
 	auth.RegisterRoutes(app, db)
+	dashboard.RegisterRoutes(app)
+	notifications.RegisterRoutes(app, db)
 	admin.RegisterRoutes(app, db)
 
 	port := getEnv("PORT", "8080")
