@@ -36,7 +36,24 @@ type LoginRequest struct {
 	OrgID    string `json:"org_id"   validate:"required,uuid"`
 }
 
-// LoginResponse is returned after a successful login.
+// ForgotPasswordRequest is the body for POST /auth/forgot-password.
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	OrgID string `json:"org_id" validate:"required,uuid"`
+}
+
+// ForgotPasswordResponse returns the reset token directly in the response.
+// ⚠️ MVP/demo only — NOT safe for production. Token must be delivered
+// out-of-band (email/SMS) before real deployment. See contracts/api/auth.md.
+type ForgotPasswordResponse struct {
+	ResetToken string `json:"reset_token"`
+}
+
+// ResetPasswordRequest is the body for POST /auth/reset-password.
+type ResetPasswordRequest struct {
+	ResetToken  string `json:"reset_token"  validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=8"`
+}
 type LoginResponse struct {
 	Token string  `json:"token"`
 	User  UserDTO `json:"user"`

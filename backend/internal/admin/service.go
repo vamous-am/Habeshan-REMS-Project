@@ -66,11 +66,25 @@ func (s *Service) UpdateUser(orgID, userID uuid.UUID, req UpdateUserRequest) (au
 // DeleteUser soft-deletes via GORM's built-in behavior — User embeds
 // common.SoftDeletable (gorm.DeletedAt), so .Delete() sets deleted_at
 // instead of removing the row. Satisfies FR-AUTH-09.
+// Rejects with 409 if deleting the last Admin would lock the org out.
 func (s *Service) DeleteUser(orgID, userID uuid.UUID) error {
 	user, err := s.findUser(orgID, userID)
 	if err != nil {
 		return err
 	}
+
+	if user.Role == auth.RoleAdmin {
+		var adminCount int64
+		if err := s.db.Model(&auth.User{}).
+			Where("org_id = ? AND role = ? AND deleted_at IS NULL", orgID, auth.RoleAdmin).
+			Count(&adminCount).Error; err != nil {
+			return common.ErrInternal
+		}
+		if adminCount <= 1 {
+			return common.ErrConflict
+		}
+	}
+
 	if err := s.db.Delete(&user).Error; err != nil {
 		return common.ErrInternal
 	}
@@ -79,13 +93,28 @@ func (s *Service) DeleteUser(orgID, userID uuid.UUID) error {
 
 // ── Role assignment (FR-ADMIN-02) ──────────────────────────────────────────────
 
+// UpdateUserRole changes a user's role. Rejects the change with 409 if it
+// would leave the org with zero Admins (FR-ADMIN-02).
 func (s *Service) UpdateUserRole(orgID, userID uuid.UUID, role string) (auth.UserDTO, error) {
 	user, err := s.findUser(orgID, userID)
 	if err != nil {
 		return auth.UserDTO{}, err
 	}
 
-	user.Role = auth.Role(role) // dto.go's validate:"oneof=..." already constrains this
+	// Guard: if we're demoting an Admin, ensure at least one other Admin remains.
+	if user.Role == auth.RoleAdmin && auth.Role(role) != auth.RoleAdmin {
+		var adminCount int64
+		if err := s.db.Model(&auth.User{}).
+			Where("org_id = ? AND role = ? AND deleted_at IS NULL", orgID, auth.RoleAdmin).
+			Count(&adminCount).Error; err != nil {
+			return auth.UserDTO{}, common.ErrInternal
+		}
+		if adminCount <= 1 {
+			return auth.UserDTO{}, common.ErrConflict // "resource already exists" sentinel → 409
+		}
+	}
+
+	user.Role = auth.Role(role)
 	if err := s.db.Save(&user).Error; err != nil {
 		return auth.UserDTO{}, common.ErrInternal
 	}

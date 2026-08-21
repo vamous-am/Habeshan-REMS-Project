@@ -74,6 +74,45 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 
 	return common.OK(c, resp)
 }
+// ForgotPassword handles POST /api/v1/auth/forgot-password
+// ⚠️ MVP/demo: returns the reset token directly in the response.
+func (h *Handler) ForgotPassword(c *fiber.Ctx) error {
+	var req ForgotPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return common.Fail(c, fiber.StatusBadRequest, "invalid request body")
+	}
+	if req.Email == "" || req.OrgID == "" {
+		return common.Fail(c, fiber.StatusBadRequest, "email and org_id are required")
+	}
+
+	resp, err := h.svc.ForgotPassword(req)
+	if err != nil {
+		return common.HandleError(c, err)
+	}
+
+	return common.OK(c, resp)
+}
+
+// ResetPassword handles POST /api/v1/auth/reset-password
+func (h *Handler) ResetPassword(c *fiber.Ctx) error {
+	var req ResetPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return common.Fail(c, fiber.StatusBadRequest, "invalid request body")
+	}
+	if req.ResetToken == "" || req.NewPassword == "" {
+		return common.Fail(c, fiber.StatusBadRequest, "reset_token and new_password are required")
+	}
+	if len(req.NewPassword) < 8 {
+		return common.Fail(c, fiber.StatusBadRequest, "password must be at least 8 characters")
+	}
+
+	if err := h.svc.ResetPassword(req); err != nil {
+		return common.HandleError(c, err)
+	}
+
+	return common.OK(c, fiber.Map{"message": "password reset successful"})
+}
+
 // Logout handles POST /api/v1/auth/logout
 
 // There is no server-side session or token store right now, so this is a

@@ -146,6 +146,58 @@ Signed **HS256** with `JWT_SECRET`. Fixed **24h** expiry.
 
 ---
 
+### POST /api/v1/auth/forgot-password
+**Public** — no token required.
+
+> ⚠️ **MVP/demo behavior:** the reset token is returned directly in the API response.
+> This is intentionally insecure — it exists so the flow is testable end-to-end today
+> without email/SMS infrastructure. **Must be replaced with out-of-band delivery
+> (Telegram via Dev 4, or email) before real deployment.**
+
+Request body:
+```json
+{
+  "email":  "string (required)",
+  "org_id": "uuid (required)"
+}
+```
+
+Response `200` — always succeeds, even if email not found (prevents enumeration):
+```json
+{
+  "status": "success",
+  "data": { "reset_token": "uuid-string" }
+}
+```
+
+Token expires in **15 minutes** and is **single-use**.
+
+---
+
+### POST /api/v1/auth/reset-password
+**Public** — no token required.
+
+Request body:
+```json
+{
+  "reset_token":  "string (required)",
+  "new_password": "string (required, min 8 chars)"
+}
+```
+
+Response `200`:
+```json
+{ "status": "success", "data": { "message": "password reset successful" } }
+```
+
+Errors:
+| Status | When |
+|--------|------|
+| `400`  | Missing fields or password < 8 chars |
+| `401`  | Token not found or expired |
+
+---
+
 ### POST /api/v1/auth/logout
 No body required. Currently a no-op — there is no server-side token store,
 so this always returns `200` and does nothing server-side. The client is

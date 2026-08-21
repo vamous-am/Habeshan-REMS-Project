@@ -83,6 +83,79 @@ func (s *Service) Register(req RegisterRequest) (LoginResponse, error) {
 
 	return response, err
 }
+// ----Password Reset -------
+//
+// ⚠️ ponytail: MVP/demo flow — token returned in API response, not emailed.
+// Ceiling: anyone who can read the API response can reset any password.
+// Upgrade path: send token via Telegram (Dev 4) or email before real deployment.
+// Token is a UUID stored in a process-local map with a 15-min expiry.
+// Not persistent across restarts — acceptable for demo purposes.
+
+// resetTokens holds active reset tokens: token → {orgID, userID, expiry}.
+// ponytail: process-local map, lost on restart, no concurrency issue at MVP scale.
+var resetTokens = map[string]resetEntry{}
+
+type resetEntry struct {
+	OrgID   string
+	UserID  string
+	Expires time.Time
+}
+
+// ForgotPassword generates a time-limited reset token and returns it directly
+// in the response. Scoped by org_id + email to match our per-org uniqueness rule.
+func (s *Service) ForgotPassword(req ForgotPasswordRequest) (ForgotPasswordResponse, error) {
+	orgID, err := uuid.Parse(req.OrgID)
+	if err != nil {
+		return ForgotPasswordResponse{}, common.ErrBadRequest
+	}
+
+	var user User
+	if err := s.db.
+		Where("email = ? AND org_id = ? AND deleted_at IS NULL", req.Email, orgID).
+		First(&user).Error; err != nil {
+		// Return success regardless — don't leak whether the email exists
+		return ForgotPasswordResponse{ResetToken: uuid.NewString()}, nil
+	}
+
+	token := uuid.NewString()
+	resetTokens[token] = resetEntry{
+		OrgID:   user.OrgID.String(),
+		UserID:  user.ID.ID.String(),
+		Expires: time.Now().Add(15 * time.Minute),
+	}
+
+	return ForgotPasswordResponse{ResetToken: token}, nil
+}
+
+// ResetPassword consumes a valid reset token and sets a new bcrypt password.
+// Token is single-use — deleted immediately on consumption.
+func (s *Service) ResetPassword(req ResetPasswordRequest) error {
+	entry, ok := resetTokens[req.ResetToken]
+	if !ok || time.Now().After(entry.Expires) {
+		delete(resetTokens, req.ResetToken) // clean up expired token if present
+		return common.ErrUnauthorized
+	}
+	delete(resetTokens, req.ResetToken) // single-use
+
+	userID, err := uuid.Parse(entry.UserID)
+	if err != nil {
+		return common.ErrInternal
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), 10)
+	if err != nil {
+		return common.ErrInternal
+	}
+
+	if err := s.db.Model(&User{}).
+		Where("id = ? AND deleted_at IS NULL", userID).
+		Update("password_hash", string(hash)).Error; err != nil {
+		return common.ErrInternal
+	}
+
+	return nil
+}
+
 // ----Lookup -------
 
 // Lookup returns the list of organizations an email belongs to (FR-AUTH-01).
