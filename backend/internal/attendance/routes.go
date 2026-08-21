@@ -13,7 +13,4 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	api.Post("/clock-in", handler.ClockIn)
 	api.Post("/clock-out", handler.ClockOut)
 	api.Post("/sync", handler.SyncBatch)
-	
-	// Task 13: Export attendance logs/report endpoint
-	api.Get("/export", handler.ExportLogs)
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { clockInApi, clockOutApi, exportAttendanceCsvApi, AttendanceRecord } from './attendanceApi';
+import { clockInApi, clockOutApi, AttendanceRecord } from './attendanceApi';
 import './ClockWidget.css';
 import { recordOfflineAttendance } from './offlineService';
+import { SyncStatusBadge } from '../../components/Attendance/SyncStatusBadge';
 
 const CURRENT_ORG_ID = 'current-org';
 const CURRENT_USER_ID = 'current-user';
@@ -9,7 +10,6 @@ const CURRENT_USER_ID = 'current-user';
 export const ClockWidget: React.FC = () => {
   const [activeSession, setActiveSession] = useState<AttendanceRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [exporting, setExporting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -126,23 +126,15 @@ export const ClockWidget: React.FC = () => {
     }
   };
 
-  const handleExportCsv = async () => {
-    setExporting(true);
-    setError(null);
-    try {
-      await exportAttendanceCsvApi();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to export CSV report.';
-      setError(message);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const isClockedIn = Boolean(activeSession && !activeSession.clock_out);
 
   return (
-    <div className="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden font-sans">
+    <div className="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden font-sans space-y-4">
+      {/* Dev 2 (Tasks 13 & 14): Embedded Network/Sync Status & Offline Queue Backup */}
+      <div className="p-4 bg-slate-50 border-b border-slate-100">
+        <SyncStatusBadge />
+      </div>
+
       <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 text-white flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold tracking-tight">Attendance Center</h2>
@@ -269,24 +261,6 @@ export const ClockWidget: React.FC = () => {
               )}
             </button>
           )}
-
-          {/* Task 13 Export CSV Button */}
-          <button
-            onClick={handleExportCsv}
-            disabled={exporting || !isOnline}
-            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded-xl transition-all duration-150 disabled:opacity-50 flex items-center justify-center gap-1.5 border border-slate-200"
-          >
-            {exporting ? (
-              <span className="inline-block animate-spin rounded-full h-3.5 w-3.5 border-2 border-slate-600 border-t-transparent" />
-            ) : (
-              <>
-                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>Export CSV Report</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
     </div>
