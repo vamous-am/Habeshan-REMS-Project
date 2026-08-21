@@ -12,7 +12,11 @@ export interface AttendanceRecord {
 const API_BASE = '/api/v1/attendance';
 
 function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem('token') || '';
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('jwt_token') ||
+    localStorage.getItem('access_token') ||
+    '';
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -65,7 +69,10 @@ export async function clockOutApi(): Promise<AttendanceRecord> {
 /**
  * Task 13: Triggers attendance report CSV export & download
  */
-export async function exportAttendanceCsvApi(startDate?: string, endDate?: string): Promise<void> {
+export async function exportAttendanceCsvApi(
+  startDate?: string,
+  endDate?: string
+): Promise<void> {
   const params = new URLSearchParams();
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
