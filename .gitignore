@@ -8,6 +8,7 @@ backend/.env
 backend/bin/
 
 # Frontend
+node_modules/
 frontend/.env.local
 frontend/node_modules/
 frontend/dist/
