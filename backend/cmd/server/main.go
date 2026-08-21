@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/habeshan-rems/backend/internal/auth"
 	"github.com/habeshan-rems/backend/internal/common"
+	"github.com/habeshan-rems/backend/internal/admin"
 	"github.com/joho/godotenv"
 
 )
@@ -28,6 +29,7 @@ func main() {
 
     // Register feature routes
 	auth.RegisterRoutes(app, db)
+	admin.RegisterRoutes(app, db)
 
 	port := getEnv("PORT", "8080")
 	log.Printf("🚀 server listening on :%s", port)
