@@ -11,6 +11,40 @@ against it.
 
 ## Endpoints
 
+### POST /api/v1/auth/lookup
+**Public** — no token required. Step 1 of the two-step login flow.
+
+Request body:
+```json
+{
+  "email": "string (required)"
+}
+```
+
+Response `200`:
+```json
+{
+  "status": "success",
+  "data": {
+    "orgs": [
+      { "org_id": "uuid", "org_name": "Acme Corp" },
+      { "org_id": "uuid", "org_name": "Beta Ltd" }
+    ]
+  }
+}
+```
+
+> If the email is not found, `orgs` is an empty array — not a 404.
+> This avoids leaking whether an email is registered; the login step
+> returns the same `401` either way.
+
+Frontend behavior:
+- If `orgs` has one entry → skip the picker, pass that `org_id` directly to login
+- If `orgs` has multiple entries → show an org-picker UI before the password step
+- If `orgs` is empty → show "no account found" message
+
+---
+
 ### POST /api/v1/auth/register
 **Public** — no token required.
 
@@ -53,46 +87,38 @@ Errors:
 | `400`  | Missing/invalid fields (bad email, password < 8 chars, etc.) |
 | `409`  | Email already used in the organization created by this same call — only reachable if two requests race on the same email, since each call creates a brand-new org |
 
-**🚧 Open issue — needs a decision before Branch 5/6 (admin endpoints) are usable:**
-Since `Register` is the only way an organization gets created, and every user
-it creates is `employee`, there is currently **no way for any organization to
-get its first `admin`.** Endpoints gated behind `RequireRole("admin")` are
-permanently unreachable until this is resolved (seed script, invite flow,
-"first user in a new org is admin" exception, or similar). Flag this in
-sprint planning — do not silently work around it in a feature branch.
+**Bootstrap note:** Since `Register` always creates a new org with an `employee` role, the first Admin for an org must be bootstrapped via the `cmd/seed-admin` CLI tool after the intended admin has registered normally:
+```
+go run ./cmd/seed-admin -org-id=<uuid> -email=someone@example.com
+```
+The tool refuses to run if the org already has an Admin, so it is safe to run idempotently.
 
 ---
 
 ### POST /api/v1/auth/login
-**Public** — no token required.
+**Public** — no token required. Step 2 of the two-step login flow.
+
+Use `POST /auth/lookup` first to get the `org_id` for the user's organization.
 
 Request body:
 ```json
 {
   "email":    "string (required)",
-  "password": "string (required)"
+  "password": "string (required)",
+  "org_id":   "uuid (required)"
 }
 ```
 
 Response `200`: same `user`/`token` shape as the register response above.
 
-> Wrong email and wrong password both return `401` with the same message,
-> to prevent user enumeration.
+> Wrong email, wrong org_id, and wrong password all return `401` with the
+> same message, to prevent user enumeration.
 
 Errors:
 | Status | When |
 |--------|------|
-| `401`  | Email not found, or password incorrect (same message for both) |
-
-**⚠️ Known limitation:** `Login` looks up by email only — **not** scoped to
-an organization (`WHERE email = ? AND deleted_at IS NULL`). The schema
-enforces `UNIQUE(org_id, email) WHERE deleted_at IS NULL`, which explicitly
-allows the same email to exist under two different organizations. If that
-ever happens, login returns an arbitrary one of the matching rows — not
-necessarily the one the caller intended. Rare today since `Register` always
-creates one org+user together in a single call, but it's a landmine for
-later (e.g. an invite-based multi-org flow). Track separately from this
-branch.
+| `400`  | Missing `email`, `password`, or `org_id` |
+| `401`  | Email not found in that org, or password incorrect (same message for both) |
 
 ---
 
@@ -117,6 +143,58 @@ Authorization: Bearer <token>
 ```
 
 Signed **HS256** with `JWT_SECRET`. Fixed **24h** expiry.
+
+---
+
+### POST /api/v1/auth/forgot-password
+**Public** — no token required.
+
+> ⚠️ **MVP/demo behavior:** the reset token is returned directly in the API response.
+> This is intentionally insecure — it exists so the flow is testable end-to-end today
+> without email/SMS infrastructure. **Must be replaced with out-of-band delivery
+> (Telegram via Dev 4, or email) before real deployment.**
+
+Request body:
+```json
+{
+  "email":  "string (required)",
+  "org_id": "uuid (required)"
+}
+```
+
+Response `200` — always succeeds, even if email not found (prevents enumeration):
+```json
+{
+  "status": "success",
+  "data": { "reset_token": "uuid-string" }
+}
+```
+
+Token expires in **15 minutes** and is **single-use**.
+
+---
+
+### POST /api/v1/auth/reset-password
+**Public** — no token required.
+
+Request body:
+```json
+{
+  "reset_token":  "string (required)",
+  "new_password": "string (required, min 8 chars)"
+}
+```
+
+Response `200`:
+```json
+{ "status": "success", "data": { "message": "password reset successful" } }
+```
+
+Errors:
+| Status | When |
+|--------|------|
+| `400`  | Missing fields or password < 8 chars |
+| `401`  | Token not found or expired |
 
 ---
 
