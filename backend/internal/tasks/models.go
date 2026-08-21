@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/common"
+	"github.com/habeshan-rems/backend/internal/auth"
 )
 
 // ─── Priority ────────────────────────────────────────────────────────────────
@@ -116,8 +117,8 @@ type Task struct {
 	DueDate *time.Time `gorm:"type:date" json:"due_date"`
 
 	// GORM associations — preload only, not stored columns.
-	Creator      User             `gorm:"foreignKey:CreatedBy;references:ID" json:"-"`
-	Organization Organization     `gorm:"foreignKey:OrgID;references:ID"     json:"-"`
+	Creator      auth.User             `gorm:"foreignKey:CreatedBy;references:ID" json:"-"`
+	Organization auth.Organization     `gorm:"foreignKey:OrgID;references:ID"     json:"-"`
 	Assignments  []TaskAssignment `gorm:"foreignKey:TaskID;references:ID"    json:"-"`
 }
 
@@ -132,8 +133,8 @@ type TaskAssignment struct {
 	AssignedAt time.Time `gorm:"autoCreateTime"                    json:"assigned_at"`
 
 	// GORM associations — preload only.
-	Task Task `gorm:"foreignKey:TaskID;references:ID" json:"-"`
-	User User `gorm:"foreignKey:UserID;references:ID" json:"-"`
+	Task Task            `gorm:"foreignKey:TaskID;references:ID" json:"-"`
+	User auth.User `gorm:"foreignKey:UserID;references:ID" json:"-"`
 }
 
 // ─── TaskTimeLog ──────────────────────────────────────────────────────────────
@@ -169,5 +170,5 @@ type TaskTimeLog struct {
 
 	// GORM associations — preload only.
 	Task Task `gorm:"foreignKey:TaskID;references:ID" json:"-"`
-	User User `gorm:"foreignKey:UserID;references:ID" json:"-"`
+	User auth.User `gorm:"foreignKey:UserID;references:ID" json:"-"`
 }
