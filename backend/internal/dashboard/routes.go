@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/habeshan-rems/backend/internal/timesheets"
 	"gorm.io/gorm"
 )
 
@@ -11,4 +12,5 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/v1/dashboard/leaderboard", GetLeaderboard)
 	app.Get("/api/v1/reports/attendance", AttendanceReport(db))
 	app.Get("/api/v1/reports/tasks", TaskReport(db))
+	app.Get("/api/v1/timesheets/export", timesheets.ExportCSV(db))
 }
