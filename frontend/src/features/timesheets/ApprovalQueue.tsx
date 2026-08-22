@@ -16,18 +16,23 @@ export default function ApprovalQueue() {
   const [loading, setLoading] = useState(true);
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
 
-  async function fetchPending() {
+  async function loadPending(): Promise<Timesheet[]> {
     const res = await fetch(`${API_BASE_URL}/timesheets?status=submitted`);
     const json = await res.json();
-    setTimesheets(json.data ?? []);
-    setLoading(false);
+    return json.data ?? [];
   }
 
-  useEffect(() => { fetchPending(); }, []);
+  useEffect(() => {
+    async function load() {
+      setTimesheets(await loadPending());
+      setLoading(false);
+    }
+    void load();
+  }, []);
 
   async function handleApprove(id: string) {
     await fetch(`${API_BASE_URL}/timesheets/${id}/approve`, { method: "PUT" });
-    fetchPending();
+    setTimesheets(await loadPending());
   }
 
   async function handleReject(id: string) {
@@ -38,7 +43,7 @@ export default function ApprovalQueue() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ reason }),
     });
-    fetchPending();
+    setTimesheets(await loadPending());
   }
 
   if (loading) return <div className="p-6 text-sm text-gray-500">Loading...</div>;

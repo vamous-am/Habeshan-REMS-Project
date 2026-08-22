@@ -23,25 +23,26 @@ export default function TimesheetList() {
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function fetchTimesheets() {
+  async function loadTimesheets(): Promise<Timesheet[]> {
     const userId = getCurrentUserId();
-    if (!userId) {
-      setTimesheets([]);
-      setLoading(false);
-      return;
-    }
+    if (!userId) return [];
 
     const res = await fetch(`${API_BASE_URL}/timesheets?user_id=${userId}`);
     const json = await res.json();
-    setTimesheets(json.data ?? []);
-    setLoading(false);
+    return json.data ?? [];
   }
 
-  useEffect(() => { fetchTimesheets(); }, []);
+  useEffect(() => {
+    async function load() {
+      setTimesheets(await loadTimesheets());
+      setLoading(false);
+    }
+    void load();
+  }, []);
 
   async function handleSubmit(id: string) {
     await fetch(`${API_BASE_URL}/timesheets/${id}/submit`, { method: "PUT" });
-    fetchTimesheets();
+    setTimesheets(await loadTimesheets());
   }
 
   if (loading) return <div className="p-6 text-sm text-gray-500">Loading...</div>;
