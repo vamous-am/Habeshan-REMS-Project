@@ -12,7 +12,11 @@ frontend/.env.local
 frontend/node_modules/
 frontend/dist/
 
+# Root-level node_modules (should never exist — catches accidental npm installs at repo root)
+node_modules/
+
 # OS
 .DS_Store
 Thumbs.db
 
+.package-lock.json
