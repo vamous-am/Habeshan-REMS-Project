@@ -1,8 +1,5 @@
 package attendance
 
-// TODO: AttendanceLog model (Dev 2)
-
-
 import (
 	"time"
 
@@ -10,17 +7,17 @@ import (
 	"github.com/habeshan-rems/backend/internal/common"
 )
 
-// SyncStatus defines the possible states for an offline-sync record
+// SyncStatus defines the valid states for offline sync verification
 type SyncStatus string
 
 const (
-	SyncStatusOfflineLogged   SyncStatus = "OFFLINE_LOGGED"
-	SyncStatusPendingSync     SyncStatus = "PENDING_SYNC"
-	SyncStatusSyncedVerified  SyncStatus = "SYNCED_VERIFIED"
+	SyncStatusOfflineLogged    SyncStatus = "OFFLINE_LOGGED"
+	SyncStatusPendingSync      SyncStatus = "PENDING_SYNC"
+	SyncStatusSyncedVerified   SyncStatus = "SYNCED_VERIFIED"
 	SyncStatusRejectedTampered SyncStatus = "REJECTED_TAMPERED"
 )
 
-// AttendanceLog represents an employee clock-in/out session record
+// AttendanceLog represents an employee clock-in/out session in PostgreSQL
 type AttendanceLog struct {
 	common.BaseModel
 	UserID     uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`

@@ -5,6 +5,7 @@ import (
 
 	"github.com/habeshan-rems/backend/internal/auth"
 )
+
 // Migrate0003Teams creates or updates the teams and team_members tables.
 // Run after Migrate0002Users, since teams.manager_id and
 // team_members.user_id both reference users.id.

@@ -83,7 +83,6 @@ type Team struct {
 
 func (Team) TableName() string { return "teams" }
 
-
 // TeamMember links a user to a team. Composite primary key, no own id or
 // timestamps.
 type TeamMember struct {
