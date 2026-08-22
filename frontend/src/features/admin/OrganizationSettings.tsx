@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../../components/Button";
@@ -9,7 +9,7 @@ import { Input } from "../../components/Input";
 import { StatusBadge } from "../../components/StatusBadge";
 import { fetchOrg, updateOrg, type OrgDTO } from "../../lib/api/adminClient";
 import { extractAuthErrorMessage } from "../../lib/api/authClient";
-import { useToast } from "../../components/Toast";
+import { useToast } from "../../components/useToast";
 
 const orgSchema = z.object({
   name: z.string().min(2, "Organization name must be at least 2 characters"),
@@ -39,27 +39,35 @@ export default function OrganizationSettings() {
     defaultValues: { name: "", currency: "", timezone: "" },
   });
 
-  const loadOrg = useCallback(async () => {
-    setLoading(true);
-    setApiError(null);
-    try {
-      const data = await fetchOrg();
-      setOrg(data);
-      form.reset({
-        name: data.name,
-        currency: data.currency,
-        timezone: data.timezone,
-      });
-    } catch (err) {
-      setApiError(extractAuthErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [form]);
-
   useEffect(() => {
-    void loadOrg();
-  }, [loadOrg]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await fetchOrg();
+        if (!cancelled) {
+          setOrg(data);
+          form.reset({
+            name: data.name,
+            currency: data.currency,
+            timezone: data.timezone,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setApiError(extractAuthErrorMessage(err));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form]);
 
   async function handleSubmit(values: OrgForm) {
     setSaving(true);

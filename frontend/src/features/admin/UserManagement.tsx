@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "../../components/Button";
 import { ErrorState } from "../../components/ErrorState";
+import { StatusBadge } from "../../components/StatusBadge";
 import {
-  StatusBadge,
   userRoleVariant,
   userStatusVariant,
-} from "../../components/StatusBadge";
+} from "../../components/statusBadgeUtils";
 import { Select } from "../../components/Select";
 import { Table, type TableColumn } from "../../components/Table";
 import {
@@ -29,21 +29,30 @@ export default function UserManagement() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    setApiError(null);
-    try {
-      setUsers(await fetchUsers());
-    } catch (err) {
-      setApiError(extractAuthErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    void loadUsers();
-  }, [loadUsers]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await fetchUsers();
+        if (!cancelled) {
+          setUsers(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setApiError(extractAuthErrorMessage(err));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleRoleChange(userId: string, role: UserRole) {
     setActionUserId(userId);

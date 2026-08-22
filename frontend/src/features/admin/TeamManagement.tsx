@@ -18,7 +18,7 @@ import {
 } from "../../lib/api/adminClient";
 import type { UserDTO } from "../../lib/api/authClient";
 import { extractAuthErrorMessage } from "../../lib/api/authClient";
-import { useToast } from "../../components/Toast";
+import { useToast } from "../../components/useToast";
 
 const createTeamSchema = z.object({
   name: z.string().min(2, "Team name must be at least 2 characters"),
@@ -71,23 +71,34 @@ export default function TeamManagement() {
     [users]
   );
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setApiError(null);
-    try {
-      const [teamList, userList] = await Promise.all([fetchTeams(), fetchUsers()]);
-      setTeams(teamList);
-      setUsers(userList);
-    } catch (err) {
-      setApiError(extractAuthErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const [teamList, userList] = await Promise.all([
+          fetchTeams(),
+          fetchUsers(),
+        ]);
+        if (!cancelled) {
+          setTeams(teamList);
+          setUsers(userList);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setApiError(extractAuthErrorMessage(err));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleCreateTeam(values: CreateTeamForm) {
     setApiError(null);
@@ -104,45 +115,51 @@ export default function TeamManagement() {
     }
   }
 
-  async function handleAddMember(teamId: string) {
-    const userId = memberSelections[teamId];
-    if (!userId) {
-      setApiError("Select a user to add to the team.");
-      return;
-    }
+  const handleAddMember = useCallback(
+    async (teamId: string) => {
+      const userId = memberSelections[teamId];
+      if (!userId) {
+        setApiError("Select a user to add to the team.");
+        return;
+      }
 
-    setActionTeamId(teamId);
-    setApiError(null);
-    try {
-      await addTeamMember(teamId, userId);
-      setMemberSelections((current) => ({ ...current, [teamId]: "" }));
-      showSuccess("Member added to team.");
-    } catch (err) {
-      setApiError(extractAuthErrorMessage(err));
-    } finally {
-      setActionTeamId(null);
-    }
-  }
+      setActionTeamId(teamId);
+      setApiError(null);
+      try {
+        await addTeamMember(teamId, userId);
+        setMemberSelections((current) => ({ ...current, [teamId]: "" }));
+        showSuccess("Member added to team.");
+      } catch (err) {
+        setApiError(extractAuthErrorMessage(err));
+      } finally {
+        setActionTeamId(null);
+      }
+    },
+    [memberSelections, showSuccess]
+  );
 
-  async function handleRemoveMember(teamId: string) {
-    const userId = memberSelections[teamId];
-    if (!userId) {
-      setApiError("Select a user to remove from the team.");
-      return;
-    }
+  const handleRemoveMember = useCallback(
+    async (teamId: string) => {
+      const userId = memberSelections[teamId];
+      if (!userId) {
+        setApiError("Select a user to remove from the team.");
+        return;
+      }
 
-    setActionTeamId(teamId);
-    setApiError(null);
-    try {
-      await removeTeamMember(teamId, userId);
-      setMemberSelections((current) => ({ ...current, [teamId]: "" }));
-      showSuccess("Member removed from team.");
-    } catch (err) {
-      setApiError(extractAuthErrorMessage(err));
-    } finally {
-      setActionTeamId(null);
-    }
-  }
+      setActionTeamId(teamId);
+      setApiError(null);
+      try {
+        await removeTeamMember(teamId, userId);
+        setMemberSelections((current) => ({ ...current, [teamId]: "" }));
+        showSuccess("Member removed from team.");
+      } catch (err) {
+        setApiError(extractAuthErrorMessage(err));
+      } finally {
+        setActionTeamId(null);
+      }
+    },
+    [memberSelections, showSuccess]
+  );
 
   const columns = useMemo<TableColumn<TeamDTO>[]>(
     () => [
@@ -201,7 +218,7 @@ export default function TeamManagement() {
         ),
       },
     ],
-    [actionTeamId, memberOptions, memberSelections, userNameById]
+    [actionTeamId, handleAddMember, handleRemoveMember, memberOptions, memberSelections, userNameById]
   );
 
   return (
