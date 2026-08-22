@@ -1,31 +1,11 @@
 import * as ToastPrimitive from "@radix-ui/react-toast";
 import { CheckCircle2, X } from "lucide-react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { ToastContext } from "./useToast";
 
 interface ToastItem {
   id: string;
   message: string;
-}
-
-interface ToastContextValue {
-  showSuccess: (message: string) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-export function useToast() {
-  const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error("useToast must be used within ToastProvider");
-  }
-  return ctx;
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
