@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/attendance"
+	"github.com/habeshan-rems/backend/internal/notifications"
 	"github.com/habeshan-rems/backend/internal/tasks"
 	"gorm.io/gorm"
 )
@@ -87,9 +88,15 @@ func (s *Service) Submit(timesheetID uuid.UUID) error {
 		return errors.New("only draft or rejected timesheets can be submitted")
 	}
 
-	return s.db.Model(&ts).Updates(map[string]any{
+	if err := s.db.Model(&ts).Updates(map[string]any{
 		"status": "submitted",
-	}).Error
+	}).Error; err != nil {
+		return err
+	}
+
+	sender := notifications.NewTelegramSender(s.db)
+	sender.NotifyTimesheetSubmitted(ts.OrgID, ts.UserID)
+	return nil
 }
 
 // Approve transitions a timesheet from submitted → approved — FR-TS-04/05
@@ -103,10 +110,16 @@ func (s *Service) Approve(timesheetID, reviewerID uuid.UUID) error {
 		return errors.New("only submitted timesheets can be approved")
 	}
 
-	return s.db.Model(&ts).Updates(map[string]any{
+	if err := s.db.Model(&ts).Updates(map[string]any{
 		"status":      "approved",
 		"reviewed_by": reviewerID,
-	}).Error
+	}).Error; err != nil {
+		return err
+	}
+
+	sender := notifications.NewTelegramSender(s.db)
+	sender.NotifyTimesheetApproved(ts.OrgID, ts.UserID)
+	return nil
 }
 
 // Reject transitions a timesheet from submitted → rejected — FR-TS-04/06
@@ -121,9 +134,15 @@ func (s *Service) Reject(timesheetID, reviewerID uuid.UUID, reason string) error
 		return errors.New("only submitted timesheets can be rejected")
 	}
 
-	return s.db.Model(&ts).Updates(map[string]any{
+	if err := s.db.Model(&ts).Updates(map[string]any{
 		"status":           "rejected",
 		"reviewed_by":      reviewerID,
 		"rejection_reason": reason,
-	}).Error
+	}).Error; err != nil {
+		return err
+	}
+
+	sender := notifications.NewTelegramSender(s.db)
+	sender.NotifyTimesheetRejected(ts.OrgID, ts.UserID, reason)
+	return nil
 }
