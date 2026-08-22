@@ -9,4 +9,6 @@ import (
 func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	app.Get("/api/v1/dashboard/manager", GetManagerDashboardLive(db))
 	app.Get("/api/v1/dashboard/leaderboard", GetLeaderboard)
+	app.Get("/api/v1/reports/attendance", AttendanceReport(db))
+	app.Get("/api/v1/reports/tasks", TaskReport(db))
 }
