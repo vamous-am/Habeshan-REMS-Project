@@ -27,6 +27,7 @@ func main() {
 	// 2. Initialize Database connection
 	db := common.InitDB()
 	timesheets.StartScheduler(db, uuid.MustParse("11111111-1111-1111-1111-111111111111"))
+	notifications.StartClockInReminderScheduler(db, uuid.MustParse("11111111-1111-1111-1111-111111111111"))
 	// 3. Auto-Migrate Database Schemas
 	if err := db.AutoMigrate(&attendance.AttendanceLog{}); err != nil {
 		log.Fatalf("❌ Schema migration failed: %v", err)
