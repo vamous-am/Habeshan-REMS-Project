@@ -10,6 +10,9 @@ import PasswordReset from "./features/auth/PasswordReset";
 import Register from "./features/auth/Register";
 import TaskListPage from "./features/tasks/pages/TaskListPage";
 import TaskDetailPage from "./features/tasks/pages/TaskDetailPage";
+import ApprovalQueue from "./features/timesheets/ApprovalQueue";
+import TimesheetList from "./features/timesheets/TimesheetList";
+import ManagerDashboardLive from "./features/dashboard/ManagerDashboardLive";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function ForbiddenPage() {
@@ -70,6 +73,31 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TaskDetailPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/timesheets"
+            element={
+              <ProtectedRoute>
+                <TimesheetList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approvals"
+            element={
+              <ProtectedRoute allowedRoles={["manager", "admin"]}>
+                <ApprovalQueue />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["manager", "admin"]}>
+                <ManagerDashboardLive />
               </ProtectedRoute>
             }
           />

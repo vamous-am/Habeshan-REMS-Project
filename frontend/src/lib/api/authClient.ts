@@ -119,6 +119,10 @@ export function getAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
+export function getCurrentUserId(): string | null {
+  return localStorage.getItem(USER_ID_KEY);
+}
+
 export function getUserRole(): UserRole | null {
   const role = localStorage.getItem(USER_ROLE_KEY);
   if (role === "admin" || role === "manager" || role === "employee") {
