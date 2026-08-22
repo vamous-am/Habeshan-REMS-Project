@@ -10,14 +10,20 @@
  */
 
 import axios from "axios";
+import { getAuthToken } from "./authClient";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080",
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1",
   headers: { "Content-Type": "application/json" },
 });
 
-// Inject stub identity headers so manual testing works without a real auth flow.
 api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Legacy stub headers for manual testing when no JWT is stored.
   const userID = localStorage.getItem("x-user-id");
   const orgID = localStorage.getItem("x-org-id");
   if (userID) config.headers["X-User-ID"] = userID;

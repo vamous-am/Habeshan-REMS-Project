@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@import "@fontsource/space-grotesk/400.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/ibm-plex-sans-condensed/400.css";
+@import "@fontsource/ibm-plex-sans-condensed/500.css";
+@import "@fontsource/ibm-plex-sans-condensed/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/*
+ * DESIGN.md §2 — design tokens.
+ * Tailwind v4 reads theme from CSS, not a JS config object.
+ * Token values are copied 1:1 from DESIGN.md.
+ */
+@theme {
+  --color-ink: #1c2b3a;
+  --color-ink-light: #2e4356;
+  --color-ink-dark: #121d28;
+
+  --color-ochre: #c98a2b;
+  --color-ochre-light: #e0a855;
+  --color-ochre-dark: #a16e1f;
+
+  --color-paper: #faf8f3;
+  --color-paper-dim: #f0ece1;
+
+  --color-ink900: #12161c;
+  --color-ink500: #5c6470;
+
+  --color-status-verified: #1f7a4d;
+  --color-status-pending: #c98a2b;
+  --color-status-rejected: #b23a2e;
+  --color-status-offline: #6b7a8c;
+
+  --font-display: "Space Grotesk", "Noto Sans Ethiopic", sans-serif;
+  --font-body: "IBM Plex Sans Condensed", "Noto Sans Ethiopic", sans-serif;
+  --font-mono: "IBM Plex Mono", "Noto Sans Ethiopic", monospace;
+
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13.5px;
+  --text-sm--line-height: 20px;
+  --text-base: 15px;
+  --text-base--line-height: 24px;
+  --text-lg: 18px;
+  --text-lg--line-height: 28px;
+  --text-xl: 23px;
+  --text-xl--line-height: 30px;
+  --text-2xl: 32px;
+  --text-2xl--line-height: 38px;
+
+  --radius-DEFAULT: 2px;
+  --radius-full: 9999px;
+
+  --shadow-card: 0 1px 2px rgba(28, 43, 58, 0.06), 0 1px 1px rgba(28, 43, 58, 0.04);
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink900);
+  font-family: var(--font-body);
+}
