@@ -9,13 +9,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 
+	"github.com/habeshan-rems/backend/internal/admin"
 	"github.com/habeshan-rems/backend/internal/attendance"
-	"github.com/habeshan-rems/backend/internal/common"
 	"github.com/habeshan-rems/backend/internal/auth"
+	"github.com/habeshan-rems/backend/internal/common"
 	"github.com/habeshan-rems/backend/internal/dashboard"
 	"github.com/habeshan-rems/backend/internal/notifications"
-	"github.com/habeshan-rems/backend/internal/admin"
-	
 )
 
 func main() {
@@ -58,7 +57,7 @@ func main() {
 	})
 
 	// Register feature routes
-  attendance.RegisterRoutes(app, db)
+	attendance.RegisterRoutes(app, db)
 	auth.RegisterRoutes(app, db)
 	dashboard.RegisterRoutes(app)
 	notifications.RegisterRoutes(app, db)
