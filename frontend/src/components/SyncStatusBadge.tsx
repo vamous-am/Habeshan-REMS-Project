@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { db } from '../../lib/offline-db/db';
-import { exportOfflineQueueToJSON } from '../../lib/offline-db/backup';
+import { db } from '../lib/offline-db/db';
+import { exportOfflineQueueToJSON } from '../lib/offline-db/backup';
 
 export const SyncStatusBadge: React.FC = () => {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);

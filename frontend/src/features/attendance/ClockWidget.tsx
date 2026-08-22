@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { clockInApi, clockOutApi, AttendanceRecord } from './attendanceApi';
 import './ClockWidget.css';
 import { recordOfflineAttendance } from './offlineService';
-import { SyncStatusBadge } from '../../components/Attendance/SyncStatusBadge';
+import { SyncStatusBadge } from '../../components/SyncStatusBadge';
 
 const CURRENT_ORG_ID = 'current-org';
 const CURRENT_USER_ID = 'current-user';
