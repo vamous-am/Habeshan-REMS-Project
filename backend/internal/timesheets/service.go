@@ -1,6 +1,7 @@
 package timesheets
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,16 +18,8 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
-// GenerateDraftTimesheets is called by the scheduler once per period.
-// For each user in the org, it:
-//  1. Pulls all attendance_logs for the period
-//  2. Pulls all task_time_logs for the period
-//  3. Sums total hours from both
-//  4. Creates a draft Timesheet row if one doesn't already exist
-//
-// FR-TS-01
+// GenerateDraftTimesheets — FR-TS-01
 func (s *Service) GenerateDraftTimesheets(orgID uuid.UUID, periodStart, periodEnd time.Time) error {
-	// 1. Find all unique user IDs that have attendance logs in this period
 	var userIDs []uuid.UUID
 	if err := s.db.
 		Model(&attendance.AttendanceLog{}).
@@ -39,7 +32,6 @@ func (s *Service) GenerateDraftTimesheets(orgID uuid.UUID, periodStart, periodEn
 
 	for _, userID := range userIDs {
 		if err := s.generateForUser(orgID, userID, periodStart, periodEnd); err != nil {
-			// Log and continue — one user failing shouldn't block others
 			continue
 		}
 	}
@@ -47,17 +39,15 @@ func (s *Service) GenerateDraftTimesheets(orgID uuid.UUID, periodStart, periodEn
 }
 
 func (s *Service) generateForUser(orgID, userID uuid.UUID, periodStart, periodEnd time.Time) error {
-	// Skip if a timesheet already exists for this user+period
 	var existing Timesheet
 	result := s.db.Where(
 		"org_id = ? AND user_id = ? AND period_start = ? AND period_end = ?",
 		orgID, userID, periodStart, periodEnd,
 	).First(&existing)
 	if result.Error == nil {
-		return nil // already exists, skip
+		return nil
 	}
 
-	// Sum attendance hours for the period
 	var attendanceHours float64
 	s.db.Model(&attendance.AttendanceLog{}).
 		Where("org_id = ? AND user_id = ? AND clock_in >= ? AND clock_in < ?", orgID, userID, periodStart, periodEnd).
@@ -65,7 +55,6 @@ func (s *Service) generateForUser(orgID, userID uuid.UUID, periodStart, periodEn
 		Select("COALESCE(SUM(total_hours), 0)").
 		Scan(&attendanceHours)
 
-	// Sum task timer hours for the period (duration_minutes → hours)
 	var taskMinutes int
 	s.db.Model(&tasks.TaskTimeLog{}).
 		Where("user_id = ? AND started_at >= ? AND started_at < ?", userID, periodStart, periodEnd).
@@ -73,10 +62,8 @@ func (s *Service) generateForUser(orgID, userID uuid.UUID, periodStart, periodEn
 		Select("COALESCE(SUM(duration_minutes), 0)").
 		Scan(&taskMinutes)
 
-	taskHours := float64(taskMinutes) / 60.0
-	totalHours := attendanceHours + taskHours
+	totalHours := attendanceHours + float64(taskMinutes)/60.0
 
-	// Create the draft timesheet
 	ts := Timesheet{
 		UserID:      userID,
 		PeriodStart: periodStart,
@@ -87,4 +74,56 @@ func (s *Service) generateForUser(orgID, userID uuid.UUID, periodStart, periodEn
 	ts.OrgID = orgID
 
 	return s.db.Create(&ts).Error
+}
+
+// Submit transitions a timesheet from draft → submitted — FR-TS-02/03
+func (s *Service) Submit(timesheetID uuid.UUID) error {
+	var ts Timesheet
+	if err := s.db.First(&ts, "id = ?", timesheetID).Error; err != nil {
+		return errors.New("timesheet not found")
+	}
+
+	if ts.Status != "draft" && ts.Status != "rejected" {
+		return errors.New("only draft or rejected timesheets can be submitted")
+	}
+
+	return s.db.Model(&ts).Updates(map[string]any{
+		"status": "submitted",
+	}).Error
+}
+
+// Approve transitions a timesheet from submitted → approved — FR-TS-04/05
+func (s *Service) Approve(timesheetID, reviewerID uuid.UUID) error {
+	var ts Timesheet
+	if err := s.db.First(&ts, "id = ?", timesheetID).Error; err != nil {
+		return errors.New("timesheet not found")
+	}
+
+	if ts.Status != "submitted" {
+		return errors.New("only submitted timesheets can be approved")
+	}
+
+	return s.db.Model(&ts).Updates(map[string]any{
+		"status":      "approved",
+		"reviewed_by": reviewerID,
+	}).Error
+}
+
+// Reject transitions a timesheet from submitted → rejected — FR-TS-04/06
+// Rejection reason is mandatory.
+func (s *Service) Reject(timesheetID, reviewerID uuid.UUID, reason string) error {
+	var ts Timesheet
+	if err := s.db.First(&ts, "id = ?", timesheetID).Error; err != nil {
+		return errors.New("timesheet not found")
+	}
+
+	if ts.Status != "submitted" {
+		return errors.New("only submitted timesheets can be rejected")
+	}
+
+	return s.db.Model(&ts).Updates(map[string]any{
+		"status":           "rejected",
+		"reviewed_by":      reviewerID,
+		"rejection_reason": reason,
+	}).Error
 }

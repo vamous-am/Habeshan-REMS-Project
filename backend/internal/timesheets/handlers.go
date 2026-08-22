@@ -15,8 +15,6 @@ func NewHandler(service *Service) *Handler {
 }
 
 // ListTimesheets handles GET /api/v1/timesheets
-// Returns all timesheets for the requesting user.
-// TODO: replace user_id query param with JWT claims once Dev 1's middleware is wired
 func (h *Handler) ListTimesheets(c *fiber.Ctx) error {
 	userIDStr := c.Query("user_id")
 	userID, err := uuid.Parse(userIDStr)
@@ -48,4 +46,64 @@ func (h *Handler) GetTimesheet(c *fiber.Ctx) error {
 	}
 
 	return common.OK(c, ts)
+}
+
+// SubmitTimesheet handles PUT /api/v1/timesheets/:id/submit
+// Transitions DRAFT → SUBMITTED — FR-TS-02/03
+func (h *Handler) SubmitTimesheet(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return common.Fail(c, fiber.StatusBadRequest, "invalid timesheet id")
+	}
+
+	if err := h.service.Submit(id); err != nil {
+		return common.HandleError(c, err)
+	}
+
+	return common.OK(c, fiber.Map{"message": "timesheet submitted"})
+}
+
+// ApproveTimesheet handles PUT /api/v1/timesheets/:id/approve
+// Transitions SUBMITTED → APPROVED — FR-TS-04/05
+func (h *Handler) ApproveTimesheet(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return common.Fail(c, fiber.StatusBadRequest, "invalid timesheet id")
+	}
+
+	// Pull reviewer ID from mock locals (swap for JWT claims later)
+	reviewerID := c.Locals("user_id").(uuid.UUID)
+
+	if err := h.service.Approve(id, reviewerID); err != nil {
+		return common.HandleError(c, err)
+	}
+
+	return common.OK(c, fiber.Map{"message": "timesheet approved"})
+}
+
+// RejectTimesheet handles PUT /api/v1/timesheets/:id/reject
+// Transitions SUBMITTED → REJECTED, reason required — FR-TS-04/06
+func (h *Handler) RejectTimesheet(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return common.Fail(c, fiber.StatusBadRequest, "invalid timesheet id")
+	}
+
+	var body struct {
+		Reason string `json:"reason"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return common.Fail(c, fiber.StatusBadRequest, "invalid request body")
+	}
+	if body.Reason == "" {
+		return common.Fail(c, fiber.StatusBadRequest, "rejection reason is required")
+	}
+
+	reviewerID := c.Locals("user_id").(uuid.UUID)
+
+	if err := h.service.Reject(id, reviewerID, body.Reason); err != nil {
+		return common.HandleError(c, err)
+	}
+
+	return common.OK(c, fiber.Map{"message": "timesheet rejected"})
 }
