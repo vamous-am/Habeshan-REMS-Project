@@ -9,7 +9,6 @@ import (
 	"github.com/habeshan-rems/backend/internal/middleware"
 )
 
-// Static Demo Fallbacks (Used ONLY if running local unit tests without JWT middleware)
 var (
 	DemoOrgID  = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	DemoUserID = uuid.MustParse("00000000-0000-0000-0000-000000000002")
@@ -23,12 +22,10 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// Safely extracts OrgID and UserID from Dev 1's JWT middleware context
 func getAuthContext(c *fiber.Ctx) (uuid.UUID, uuid.UUID) {
 	orgID := DemoOrgID
 	userID := DemoUserID
 
-	// Extract OrgID (handles both uuid.UUID and string types)
 	if val := c.Locals(middleware.LocalOrgID); val != nil {
 		if parsed, ok := val.(uuid.UUID); ok && parsed != uuid.Nil {
 			orgID = parsed
@@ -39,7 +36,6 @@ func getAuthContext(c *fiber.Ctx) (uuid.UUID, uuid.UUID) {
 		}
 	}
 
-	// Extract UserID (handles both uuid.UUID and string types)
 	if val := c.Locals(middleware.LocalUserID); val != nil {
 		if parsed, ok := val.(uuid.UUID); ok && parsed != uuid.Nil {
 			userID = parsed
@@ -112,7 +108,6 @@ func (h *Handler) SyncBatch(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(res)
 }
 
-// GetSelfHistory handles GET /attendance/me (Task 15)
 func (h *Handler) GetSelfHistory(c *fiber.Ctx) error {
 	var query AttendanceHistoryQuery
 	if err := c.QueryParser(&query); err != nil {
@@ -128,7 +123,6 @@ func (h *Handler) GetSelfHistory(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(res)
 }
 
-// GetTeamHistory handles GET /attendance/team (Task 15)
 func (h *Handler) GetTeamHistory(c *fiber.Ctx) error {
 	var query AttendanceHistoryQuery
 	if err := c.QueryParser(&query); err != nil {
@@ -144,7 +138,6 @@ func (h *Handler) GetTeamHistory(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(res)
 }
 
-// GetOrgHistory handles GET /attendance/org (Task 15)
 func (h *Handler) GetOrgHistory(c *fiber.Ctx) error {
 	var query AttendanceHistoryQuery
 	if err := c.QueryParser(&query); err != nil {
