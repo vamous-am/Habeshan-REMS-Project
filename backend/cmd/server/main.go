@@ -9,13 +9,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 
+	"github.com/habeshan-rems/backend/internal/admin"
 	"github.com/habeshan-rems/backend/internal/attendance"
-	"github.com/habeshan-rems/backend/internal/common"
 	"github.com/habeshan-rems/backend/internal/auth"
+	"github.com/habeshan-rems/backend/internal/common"
 	"github.com/habeshan-rems/backend/internal/dashboard"
 	"github.com/habeshan-rems/backend/internal/notifications"
-	"github.com/habeshan-rems/backend/internal/admin"
-	
+	"github.com/habeshan-rems/backend/internal/timesheets"
 )
 
 func main() {
@@ -26,7 +26,8 @@ func main() {
 
 	// 2. Initialize Database connection
 	db := common.InitDB()
-
+	timesheets.StartScheduler(db, uuid.MustParse("11111111-1111-1111-1111-111111111111"))
+	notifications.StartClockInReminderScheduler(db, uuid.MustParse("11111111-1111-1111-1111-111111111111"))
 	// 3. Auto-Migrate Database Schemas
 	if err := db.AutoMigrate(&attendance.AttendanceLog{}); err != nil {
 		log.Fatalf("❌ Schema migration failed: %v", err)
@@ -58,10 +59,11 @@ func main() {
 	})
 
 	// Register feature routes
-  attendance.RegisterRoutes(app, db)
+	attendance.RegisterRoutes(app, db)
 	auth.RegisterRoutes(app, db)
-	dashboard.RegisterRoutes(app)
+	dashboard.RegisterRoutes(app, db)
 	notifications.RegisterRoutes(app, db)
+	timesheets.RegisterRoutes(app, db)
 	admin.RegisterRoutes(app, db)
 
 	// 9. Start HTTP Server

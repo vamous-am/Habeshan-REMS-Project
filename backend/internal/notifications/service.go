@@ -15,6 +15,17 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
+func (s *Service) CreateNotification(orgID, userID uuid.UUID, notifType, message string) error {
+	notification := Notification{
+		UserID:  userID,
+		Type:    notifType,
+		Message: message,
+	}
+	notification.OrgID = orgID
+
+	return s.db.Create(&notification).Error
+}
+
 // LinkTelegram links a Telegram chat ID to a user account.
 // If the user already has a subscriber row, it updates it instead of inserting a new one.
 func (s *Service) LinkTelegram(userID uuid.UUID, chatID string) error {
