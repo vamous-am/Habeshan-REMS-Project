@@ -255,14 +255,12 @@ func (s *service) fetchPaginated(dbQuery *gorm.DB, page, limit int) (*Attendance
 	}, nil
 }
 
-// GetSelfHistory fetches self-scoped attendance logs (Task 15)
 func (s *service) GetSelfHistory(orgID, userID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error) {
 	base := s.db.Where("org_id = ? AND user_id = ?", orgID, userID)
 	dbQuery, page, limit := s.buildQuery(base, query)
 	return s.fetchPaginated(dbQuery, page, limit)
 }
 
-// GetTeamHistory fetches team-scoped attendance logs (Task 15)
 func (s *service) GetTeamHistory(orgID, managerID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error) {
 	base := s.db.Where("org_id = ?", orgID)
 	if query.TeamID != nil && *query.TeamID != uuid.Nil {
@@ -275,7 +273,6 @@ func (s *service) GetTeamHistory(orgID, managerID uuid.UUID, query AttendanceHis
 	return s.fetchPaginated(dbQuery, page, limit)
 }
 
-// GetOrgHistory fetches organization-wide attendance logs (Task 15)
 func (s *service) GetOrgHistory(orgID uuid.UUID, query AttendanceHistoryQuery) (*AttendanceHistoryResponse, error) {
 	base := s.db.Where("org_id = ?", orgID)
 	if query.UserID != nil && *query.UserID != uuid.Nil {
