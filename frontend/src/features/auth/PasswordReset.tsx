@@ -7,7 +7,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { ErrorState } from "../../components/ErrorState";
 import { Input } from "../../components/Input";
-import { useToast } from "../../components/Toast";
+import { useToast } from "../../components/useToast";
 import {
   extractAuthErrorMessage,
   forgotPassword,

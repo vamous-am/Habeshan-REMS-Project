@@ -94,24 +94,41 @@ export interface ResetPasswordPayload {
   new_password: string;
 }
 
+export type UserRole = "admin" | "manager" | "employee";
+
 const AUTH_TOKEN_KEY = "auth_token";
 const USER_ID_KEY = "x-user-id";
 const ORG_ID_KEY = "x-org-id";
+const USER_ROLE_KEY = "user-role";
 
 export function persistAuthSession({ token, user }: AuthResponse): void {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(USER_ID_KEY, user.id);
   localStorage.setItem(ORG_ID_KEY, user.org_id);
+  localStorage.setItem(USER_ROLE_KEY, user.role);
 }
 
 export function clearAuthSession(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(USER_ID_KEY);
   localStorage.removeItem(ORG_ID_KEY);
+  localStorage.removeItem(USER_ROLE_KEY);
 }
 
 export function getAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function getUserRole(): UserRole | null {
+  const role = localStorage.getItem(USER_ROLE_KEY);
+  if (role === "admin" || role === "manager" || role === "employee") {
+    return role;
+  }
+  return null;
+}
+
+export function isAuthenticated(): boolean {
+  return getAuthToken() !== null;
 }
 
 export async function lookupOrgs(email: string): Promise<LookupResponse> {
