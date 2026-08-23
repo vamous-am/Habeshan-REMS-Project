@@ -15,10 +15,14 @@ func RunAll(db *gorm.DB) error {
         {"0001_dev1_organizations", Migrate0001Organizations},
         {"0002_dev1_users", Migrate0002Users},
         {"0003_dev1_teams", Migrate0003Teams},
+        {"0004_dev2_attendance", MigrateAttendanceLogs},
         {"0005_dev3_tasks", MigrateTasks},
         {"0006_dev4_tasks", MigrateTaskAssignments},
         {"0007_dev5_tasks", MigrateTaskTimeLogs},
-        {"0100_dev5_tasks_seed", MigrateSeedTasks},
+        {"0008_dev4_timesheets", Migrate0008Timesheets},
+        {"0009_dev4_notifications", Migrate0009Notifications},
+        {"0010_dev4_telegram_subscribers", Migrate0010TelegramSubscribers},
+        // 0100_dev5_tasks_seed intentionally excluded — run manually for local dev only
         // future migrations appended here
     }
 

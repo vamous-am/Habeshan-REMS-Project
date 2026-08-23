@@ -21,8 +21,23 @@ import (
 // needs to populate these two headers; no handler changes are required.
 
 func callerFromCtx(c *fiber.Ctx) (callerID, orgID uuid.UUID, err error) {
-	rawUser := c.Get("X-User-ID")
-	rawOrg := c.Get("X-Org-ID")
+	var rawUser, rawOrg string
+
+	if u, ok := c.Locals("user_id").(string); ok && u != "" {
+		rawUser = u
+	} else if u, ok := c.Locals("user_id").(uuid.UUID); ok {
+		rawUser = u.String()
+	} else {
+		rawUser = c.Get("X-User-ID")
+	}
+
+	if o, ok := c.Locals("org_id").(string); ok && o != "" {
+		rawOrg = o
+	} else if o, ok := c.Locals("org_id").(uuid.UUID); ok {
+		rawOrg = o.String()
+	} else {
+		rawOrg = c.Get("X-Org-ID")
+	}
 
 	if rawUser == "" || rawOrg == "" {
 		return uuid.Nil, uuid.Nil, common.ErrUnauthorized
