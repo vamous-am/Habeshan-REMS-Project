@@ -34,7 +34,23 @@ export default function ApprovalQueue() {
   }
 
   useEffect(() => {
-    void loadPending();
+    let active = true;
+    api.get("/timesheets?status=submitted")
+      .then((res) => {
+        if (active) {
+          const list = res.data?.data ?? res.data ?? [];
+          setTimesheets(Array.isArray(list) ? list : []);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load approval queue");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function handleApprove(id: string) {

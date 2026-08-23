@@ -77,10 +77,11 @@ export function Navbar() {
   const userName = getCurrentUserName();
   const userEmail = getCurrentUserEmail();
 
-  // Close mobile menu on location change
-  useEffect(() => {
+  const [prevPath, setPrevPath] = useState(location.pathname);
+  if (location.pathname !== prevPath) {
+    setPrevPath(location.pathname);
     setMobileMenuOpen(false);
-  }, [location.pathname]);
+  }
 
   // Monitor online / offline status
   useEffect(() => {

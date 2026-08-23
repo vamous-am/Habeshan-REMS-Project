@@ -53,7 +53,24 @@ export default function TimesheetList() {
   }
 
   useEffect(() => {
-    void loadTimesheets();
+    let active = true;
+    const userId = getCurrentUserId();
+    api.get(userId ? `/timesheets?user_id=${userId}` : "/timesheets")
+      .then((res) => {
+        if (active) {
+          const list = res.data?.data ?? res.data ?? [];
+          setTimesheets(Array.isArray(list) ? list : []);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load timesheets");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function handleSubmit(id: string) {

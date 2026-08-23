@@ -13,7 +13,24 @@ export default function ManagerDashboardLive() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadDashboard() {
+  useEffect(() => {
+    let active = true;
+    api.get("/dashboard/manager")
+      .then((res) => {
+        if (active) setData(res.data?.data ?? res.data);
+      })
+      .catch((err: unknown) => {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load dashboard metrics");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function refreshDashboard() {
     setLoading(true);
     setError(null);
     try {
@@ -25,10 +42,6 @@ export default function ManagerDashboardLive() {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    loadDashboard();
-  }, []);
 
   if (loading) {
     return (
@@ -52,7 +65,7 @@ export default function ManagerDashboardLive() {
         </h3>
         <p className="mt-1 text-xs text-ink500">{error}</p>
         <button
-          onClick={loadDashboard}
+          onClick={refreshDashboard}
           className="mt-4 rounded bg-ink px-4 py-1.5 text-xs font-medium text-paper hover:bg-ink-light"
         >
           Try Again
@@ -78,7 +91,7 @@ export default function ManagerDashboardLive() {
           </p>
         </div>
         <button
-          onClick={loadDashboard}
+          onClick={refreshDashboard}
           className="flex items-center gap-1.5 rounded border border-ink/15 bg-paper px-3 py-1.5 text-xs font-medium text-ink transition hover:bg-ink/5"
         >
           <RefreshCw className="h-3.5 w-3.5" />
