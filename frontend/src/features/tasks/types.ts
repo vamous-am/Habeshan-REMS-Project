@@ -51,6 +51,22 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 
 // ─── Response shapes ──────────────────────────────────────────────────────────
 
+export interface AssignedUser {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+}
+
+export interface AssignableUser {
+  id: string;
+  org_id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  status: string;
+}
+
 export interface Task {
   id: string;
   org_id: string;
@@ -63,6 +79,7 @@ export interface Task {
   created_at: string;
   updated_at: string;
   assigned_to?: string[];
+  assigned_users?: AssignedUser[];
 }
 
 export interface TimeLog {
@@ -97,7 +114,9 @@ export interface CreateTaskPayload {
 }
 
 export interface AssignTaskPayload {
-  user_ids: string[];
+  user_ids?: string[];
+  emails?: string[];
+  identifiers?: string[];
 }
 
 export interface ChangeStatusPayload {

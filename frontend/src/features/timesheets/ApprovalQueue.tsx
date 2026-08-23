@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+import api from "../../lib/api/client";
+import { ShieldCheck, Check, X, AlertCircle, RefreshCw, Calendar, Clock } from "lucide-react";
 
 interface Timesheet {
   id: string;
@@ -14,80 +14,226 @@ interface Timesheet {
 export default function ApprovalQueue() {
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+  const [showRejectBox, setShowRejectBox] = useState<Record<string, boolean>>({});
 
-  async function loadPending(): Promise<Timesheet[]> {
-    const res = await fetch(`${API_BASE_URL}/timesheets?status=submitted`);
-    const json = await res.json();
-    return json.data ?? [];
+  async function loadPending() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get("/timesheets?status=submitted");
+      const list = res.data?.data ?? res.data ?? [];
+      setTimesheets(Array.isArray(list) ? list : []);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load approval queue");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
-    async function load() {
-      setTimesheets(await loadPending());
-      setLoading(false);
-    }
-    void load();
+    let active = true;
+    api.get("/timesheets?status=submitted")
+      .then((res) => {
+        if (active) {
+          const list = res.data?.data ?? res.data ?? [];
+          setTimesheets(Array.isArray(list) ? list : []);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load approval queue");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function handleApprove(id: string) {
-    await fetch(`${API_BASE_URL}/timesheets/${id}/approve`, { method: "PUT" });
-    setTimesheets(await loadPending());
+    setActionLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      await api.put(`/timesheets/${id}/approve`);
+      await loadPending();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to approve timesheet");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }));
+    }
   }
 
   async function handleReject(id: string) {
     const reason = rejectReason[id];
-    if (!reason) return alert("Rejection reason is required.");
-    await fetch(`${API_BASE_URL}/timesheets/${id}/reject`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason }),
-    });
-    setTimesheets(await loadPending());
+    if (!reason || !reason.trim()) {
+      alert("Rejection reason is required.");
+      return;
+    }
+    setActionLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      await api.put(`/timesheets/${id}/reject`, { reason: reason.trim() });
+      await loadPending();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reject timesheet");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }));
+    }
   }
 
-  if (loading) return <div className="p-6 text-sm text-gray-500">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="flex items-center gap-2 font-mono text-sm text-ink500">
+          <RefreshCw className="h-4 w-4 animate-spin text-ochre" />
+          <span>Loading approval queue…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Approval Queue</h1>
-      {timesheets.length === 0 && (
-        <p className="text-sm text-gray-400">No pending timesheets.</p>
-      )}
-      {timesheets.map((ts) => (
-        <div key={ts.id} className="border rounded-lg p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">
-              {ts.period_start} to {ts.period_end}
-            </p>
-            <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-semibold">
-              submitted
-            </span>
-          </div>
-          <p className="text-sm text-gray-500">Total hours: {ts.total_hours.toFixed(2)}</p>
-          <input
-            type="text"
-            placeholder="Rejection reason (required to reject)"
-            value={rejectReason[ts.id] ?? ""}
-            onChange={(e) => setRejectReason((prev) => ({ ...prev, [ts.id]: e.target.value }))}
-            className="w-full border rounded px-3 py-1 text-sm"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleApprove(ts.id)}
-              className="text-xs bg-green-600 text-white px-3 py-1 rounded"
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => handleReject(ts.id)}
-              className="text-xs bg-red-600 text-white px-3 py-1 rounded"
-            >
-              Reject
-            </button>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-ink/10 pb-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
+            Timesheet Approvals
+          </h1>
+          <p className="mt-1 text-sm text-ink500">
+            Review, verify, and approve employee timesheet submissions.
+          </p>
         </div>
-      ))}
+        <button
+          onClick={loadPending}
+          className="flex items-center gap-1.5 rounded border border-ink/15 bg-paper px-3 py-1.5 text-xs font-medium text-ink transition hover:bg-ink/5"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg border border-status-rejected/30 bg-status-rejected/10 p-4 text-xs text-status-rejected">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {timesheets.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-ink/20 bg-paper-dim/40 p-12 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-status-verified/10 text-status-verified">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <h3 className="mt-3 font-display text-base font-bold text-ink">
+            All Caught Up!
+          </h3>
+          <p className="mt-1 text-xs text-ink500">
+            There are no pending timesheets requiring manager or admin review.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {timesheets.map((ts) => {
+            const isProcessing = actionLoading[ts.id];
+            const isRejectOpen = showRejectBox[ts.id];
+
+            return (
+              <div
+                key={ts.id}
+                className="rounded-xl border border-ink/10 bg-paper p-5 shadow-xs transition hover:border-ink/20"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-ink">
+                        User ID: {ts.user_id.slice(0, 8)}…
+                      </span>
+                      <span className="rounded bg-ochre/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-ochre-dark">
+                        SUBMITTED
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-ink500">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>
+                          {ts.period_start} → {ts.period_end}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span className="font-semibold text-ink">
+                          {ts.total_hours} hrs logged
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() => handleApprove(ts.id)}
+                      className="flex items-center gap-1.5 rounded bg-status-verified px-3.5 py-1.5 text-xs font-semibold text-paper shadow-xs transition hover:bg-status-verified/90 disabled:opacity-50"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span>{isProcessing ? "Approving…" : "Approve"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isProcessing}
+                      onClick={() =>
+                        setShowRejectBox((prev) => ({
+                          ...prev,
+                          [ts.id]: !prev[ts.id],
+                        }))
+                      }
+                      className="flex items-center gap-1.5 rounded border border-status-rejected/30 bg-status-rejected/10 px-3.5 py-1.5 text-xs font-semibold text-status-rejected transition hover:bg-status-rejected/20 disabled:opacity-50"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      <span>Reject</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Rejection input drawer */}
+                {isRejectOpen && (
+                  <div className="mt-4 border-t border-ink/10 pt-4">
+                    <label className="mb-1 block text-xs font-medium text-ink500">
+                      Rejection Reason (Required)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={rejectReason[ts.id] || ""}
+                        onChange={(e) =>
+                          setRejectReason((prev) => ({
+                            ...prev,
+                            [ts.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="Explain why this timesheet was rejected…"
+                        className="flex-1 rounded border border-ink/15 bg-paper px-3 py-1.5 text-xs text-ink outline-none focus:border-status-rejected"
+                      />
+                      <button
+                        type="button"
+                        disabled={isProcessing || !rejectReason[ts.id]?.trim()}
+                        onClick={() => handleReject(ts.id)}
+                        className="rounded bg-status-rejected px-3.5 py-1.5 text-xs font-semibold text-paper shadow-xs hover:bg-status-rejected/90 disabled:opacity-50"
+                      >
+                        Confirm Rejection
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

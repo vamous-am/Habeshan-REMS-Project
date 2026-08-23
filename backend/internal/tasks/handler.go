@@ -101,7 +101,8 @@ func (h *Handler) CreateTask(c *fiber.Ctx) error {
 	}
 
 	assignedTo, _ := h.assignRepo.GetAssignedUserIDs(task.ID.ID)
-	return common.Created(c, TaskToResponse(task, assignedTo))
+	assignedUsers, _ := h.svc.GetUsersDetails(assignedTo)
+	return common.Created(c, TaskToResponse(task, assignedTo, assignedUsers))
 }
 
 // GetMyTasks  GET /tasks
@@ -119,7 +120,9 @@ func (h *Handler) GetMyTasks(c *fiber.Ctx) error {
 
 	resp := make([]TaskResponse, 0, len(tasks))
 	for _, t := range tasks {
-		resp = append(resp, TaskToResponse(t, nil))
+		assignedTo, _ := h.assignRepo.GetAssignedUserIDs(t.ID.ID)
+		assignedUsers, _ := h.svc.GetUsersDetails(assignedTo)
+		resp = append(resp, TaskToResponse(t, assignedTo, assignedUsers))
 	}
 	return common.OK(c, resp)
 }
@@ -143,13 +146,41 @@ func (h *Handler) GetTaskByID(c *fiber.Ctx) error {
 	}
 
 	assignedTo, _ := h.assignRepo.GetAssignedUserIDs(task.ID.ID)
-	return common.OK(c, TaskToResponse(task, assignedTo))
+	assignedUsers, _ := h.svc.GetUsersDetails(assignedTo)
+	return common.OK(c, TaskToResponse(task, assignedTo, assignedUsers))
 }
 
 // ─── Assignment ───────────────────────────────────────────────────────────────
 
+// GetAssignableUsers GET /tasks/assignable-users
+// Returns all users in the organization for task assignment dropdowns.
+func (h *Handler) GetAssignableUsers(c *fiber.Ctx) error {
+	callerID, orgID, err := callerFromCtx(c)
+	if err != nil {
+		return common.HandleError(c, err)
+	}
+
+	users, err := h.svc.GetAssignableUsers(callerID, orgID)
+	if err != nil {
+		return common.HandleError(c, err)
+	}
+
+	res := make([]AssignableUserDTO, len(users))
+	for i, u := range users {
+		res[i] = AssignableUserDTO{
+			ID:       u.ID.ID,
+			OrgID:    u.OrgID,
+			Email:    u.Email,
+			FullName: u.FullName,
+			Role:     string(u.Role),
+			Status:   string(u.Status),
+		}
+	}
+	return common.OK(c, res)
+}
+
 // AssignTask  POST /tasks/:id/assignments
-// FR-TASK-02: assign one or more employees to a task.
+// FR-TASK-02: assign one or more employees to a task by user ID, email, or name.
 func (h *Handler) AssignTask(c *fiber.Ctx) error {
 	callerID, orgID, err := callerFromCtx(c)
 	if err != nil {
@@ -166,16 +197,21 @@ func (h *Handler) AssignTask(c *fiber.Ctx) error {
 		return common.Fail(c, fiber.StatusBadRequest, "invalid request body")
 	}
 
-	if err := h.svc.AssignTask(taskID, req.UserIDs, callerID, orgID); err != nil {
+	if err := h.svc.AssignTaskByIdentifiers(taskID, req.UserIDs, req.Emails, req.Identifiers, callerID, orgID); err != nil {
 		return common.HandleError(c, err)
 	}
 
 	assignedTo, _ := h.assignRepo.GetAssignedUserIDs(taskID)
-	return common.OK(c, fiber.Map{"task_id": taskID, "assigned_to": assignedTo})
+	assignedUsers, _ := h.svc.GetUsersDetails(assignedTo)
+	return common.OK(c, fiber.Map{
+		"task_id":        taskID,
+		"assigned_to":    assignedTo,
+		"assigned_users": assignedUsers,
+	})
 }
 
 // UnassignTask  DELETE /tasks/:id/assignments/:userID
-// FR-TASK-02: remove an employee from a task.
+// FR-TASK-02: remove an employee from a task by UUID or email identifier.
 func (h *Handler) UnassignTask(c *fiber.Ctx) error {
 	callerID, orgID, err := callerFromCtx(c)
 	if err != nil {
@@ -187,16 +223,24 @@ func (h *Handler) UnassignTask(c *fiber.Ctx) error {
 		return common.HandleError(c, err)
 	}
 
-	targetUserID, err := uuid.Parse(c.Params("userID"))
-	if err != nil {
-		return common.Fail(c, fiber.StatusBadRequest, "invalid user id")
+	rawIdent := c.Params("userID")
+	if uid, err := uuid.Parse(rawIdent); err == nil {
+		if err := h.svc.UnassignTask(taskID, uid, callerID, orgID); err != nil {
+			return common.HandleError(c, err)
+		}
+	} else {
+		if err := h.svc.UnassignTaskByIdentifier(taskID, rawIdent, callerID, orgID); err != nil {
+			return common.HandleError(c, err)
+		}
 	}
 
-	if err := h.svc.UnassignTask(taskID, targetUserID, callerID, orgID); err != nil {
-		return common.HandleError(c, err)
-	}
-
-	return common.OK(c, fiber.Map{"message": "assignment removed"})
+	assignedTo, _ := h.assignRepo.GetAssignedUserIDs(taskID)
+	assignedUsers, _ := h.svc.GetUsersDetails(assignedTo)
+	return common.OK(c, fiber.Map{
+		"message":        "assignment removed",
+		"assigned_to":    assignedTo,
+		"assigned_users": assignedUsers,
+	})
 }
 
 // ─── Status ───────────────────────────────────────────────────────────────────
@@ -436,7 +480,7 @@ func (h *Handler) GetOverdueTasks(c *fiber.Ctx) error {
 
 	resp := make([]TaskResponse, 0, len(tasks))
 	for _, t := range tasks {
-		resp = append(resp, TaskToResponse(t, nil))
+		resp = append(resp, TaskToResponse(t, nil, nil))
 	}
 	return common.OK(c, resp)
 }

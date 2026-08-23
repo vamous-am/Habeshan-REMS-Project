@@ -13,7 +13,10 @@ import (
 // Filterable by user_id, date range — FR-DASH-02
 func AttendanceReport(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		orgID := c.Locals("org_id").(uuid.UUID)
+		orgID, err := getOrgIDFromCtx(c)
+		if err != nil {
+			return common.Fail(c, fiber.StatusUnauthorized, "unauthorized")
+		}
 
 		fromStr := c.Query("from")
 		toStr := c.Query("to")
@@ -56,7 +59,10 @@ func AttendanceReport(db *gorm.DB) fiber.Handler {
 // Filterable by user_id, status, date range — FR-DASH-03
 func TaskReport(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		orgID := c.Locals("org_id").(uuid.UUID)
+		orgID, err := getOrgIDFromCtx(c)
+		if err != nil {
+			return common.Fail(c, fiber.StatusUnauthorized, "unauthorized")
+		}
 
 		fromStr := c.Query("from")
 		toStr := c.Query("to")

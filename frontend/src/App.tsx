@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastProvider } from "./components/Toast";
+import { AppLayout } from "./components/AppLayout";
 import { AdminLayout } from "./features/admin/AdminLayout";
 import OrganizationSettings from "./features/admin/OrganizationSettings";
 import TeamManagement from "./features/admin/TeamManagement";
@@ -23,11 +24,11 @@ function ForbiddenPage() {
           Access denied
         </h1>
         <p className="mt-2 text-sm text-ink500">
-          You do not have permission to view this page.
+          You do not have permission to view this page with your current account role.
         </p>
         <a
           href="/tasks"
-          className="mt-4 inline-block text-sm text-ink underline underline-offset-2"
+          className="mt-4 inline-block rounded bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:bg-ink-light"
         >
           Go to tasks
         </a>
@@ -41,21 +42,24 @@ export default function App() {
     <ToastProvider>
       <BrowserRouter>
         <Routes>
+          {/* Public Authentication Routes */}
           <Route path="/" element={<Navigate to="/login" replace />} />
-
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<PasswordReset />} />
           <Route path="/reset-password" element={<PasswordReset />} />
           <Route path="/forbidden" element={<ForbiddenPage />} />
 
+          {/* Protected Application Routes wrapped with unified AppLayout */}
           <Route
             path="/attendance"
             element={
               <ProtectedRoute>
-                <div className="flex min-h-screen items-center justify-center bg-paper p-4">
-                  <ClockWidget />
-                </div>
+                <AppLayout>
+                  <div className="flex min-h-[calc(100vh-4.5rem)] items-center justify-center bg-paper p-6">
+                    <ClockWidget />
+                  </div>
+                </AppLayout>
               </ProtectedRoute>
             }
           />
@@ -64,15 +68,20 @@ export default function App() {
             path="/tasks"
             element={
               <ProtectedRoute>
-                <TaskListPage />
+                <AppLayout>
+                  <TaskListPage />
+                </AppLayout>
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/tasks/:id"
             element={
               <ProtectedRoute>
-                <TaskDetailPage />
+                <AppLayout>
+                  <TaskDetailPage />
+                </AppLayout>
               </ProtectedRoute>
             }
           />
@@ -81,23 +90,37 @@ export default function App() {
             path="/timesheets"
             element={
               <ProtectedRoute>
-                <TimesheetList />
+                <AppLayout>
+                  <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                    <TimesheetList />
+                  </div>
+                </AppLayout>
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/approvals"
             element={
               <ProtectedRoute allowedRoles={["manager", "admin"]}>
-                <ApprovalQueue />
+                <AppLayout>
+                  <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                    <ApprovalQueue />
+                  </div>
+                </AppLayout>
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/dashboard"
             element={
               <ProtectedRoute allowedRoles={["manager", "admin"]}>
-                <ManagerDashboardLive />
+                <AppLayout>
+                  <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                    <ManagerDashboardLive />
+                  </div>
+                </AppLayout>
               </ProtectedRoute>
             }
           />
@@ -106,7 +129,9 @@ export default function App() {
             path="/admin"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminLayout />
+                <AppLayout>
+                  <AdminLayout />
+                </AppLayout>
               </ProtectedRoute>
             }
           >
@@ -116,13 +141,18 @@ export default function App() {
             <Route path="settings" element={<OrganizationSettings />} />
           </Route>
 
+          {/* 404 Fallback */}
           <Route
             path="*"
             element={
-              <div className="p-6 font-body text-ink">
-                <h2 className="font-display text-xl">Page not found</h2>
-                <a href="/login" className="mt-2 inline-block text-ink underline">
-                  Go to sign in
+              <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center font-body text-ink">
+                <h1 className="font-display text-3xl font-bold text-ink">404</h1>
+                <p className="mt-2 text-base text-ink500">Page not found</p>
+                <a
+                  href="/tasks"
+                  className="mt-4 rounded bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-ink-light"
+                >
+                  Return to application
                 </a>
               </div>
             }

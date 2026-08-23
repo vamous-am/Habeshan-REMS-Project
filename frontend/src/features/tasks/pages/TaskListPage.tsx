@@ -281,7 +281,32 @@ export default function TaskListPage() {
                         : "—"}
                     </td>
                     <td style={tdStyle}>
-                      {assignedCount > 0 ? (
+                      {task.assigned_users && task.assigned_users.length > 0 ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          {task.assigned_users.slice(0, 2).map((u) => (
+                            <span
+                              key={u.id}
+                              style={{
+                                padding: "2px 8px",
+                                borderRadius: 12,
+                                background: "#f3f4f6",
+                                color: "#111827",
+                                fontSize: 12,
+                                fontWeight: 500,
+                                border: "1px solid #e5e7eb",
+                              }}
+                              title={`${u.full_name} (${u.email})`}
+                            >
+                              {u.full_name || u.email}
+                            </span>
+                          ))}
+                          {task.assigned_users.length > 2 && (
+                            <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 500 }}>
+                              +{task.assigned_users.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                      ) : assignedCount > 0 ? (
                         <span
                           style={{
                             padding: "2px 10px",

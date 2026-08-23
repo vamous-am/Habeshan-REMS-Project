@@ -27,6 +27,8 @@ import type {
   TaskStatusCounts,
   CreateTaskPayload,
   AssignTaskPayload,
+  AssignableUser,
+  AssignedUser,
   ChangeStatusPayload,
   TimerStartPayload,
   TimerPausePayload,
@@ -115,20 +117,24 @@ export async function changeTaskStatus(
   return unwrap(await api.patch(`${BASE}/${taskID}/status`, payload));
 }
 
-// ─── assignments ─────────────────────────────────────────────────────────────
+// ─── assignments & directory ──────────────────────────────────────────────────
+
+export async function fetchAssignableUsers(): Promise<AssignableUser[]> {
+  return unwrap<AssignableUser[]>(await api.get(`${BASE}/assignable-users`));
+}
 
 export async function assignTask(
   taskID: string,
   payload: AssignTaskPayload
-): Promise<{ task_id: string; assigned_to: string[] }> {
+): Promise<{ task_id: string; assigned_to: string[]; assigned_users?: AssignedUser[] }> {
   return unwrap(await api.post(`${BASE}/${taskID}/assignments`, payload));
 }
 
 export async function unassignTask(
   taskID: string,
-  userID: string
-): Promise<{ message: string }> {
-  return unwrap(await api.delete(`${BASE}/${taskID}/assignments/${userID}`));
+  identifier: string
+): Promise<{ message: string; assigned_to?: string[]; assigned_users?: AssignedUser[] }> {
+  return unwrap(await api.delete(`${BASE}/${taskID}/assignments/${encodeURIComponent(identifier)}`));
 }
 
 // ─── timer ────────────────────────────────────────────────────────────────────

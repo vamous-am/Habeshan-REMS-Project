@@ -18,15 +18,36 @@ type CreateTaskRequest struct {
 	DueDate     *time.Time `json:"due_date"`
 }
 
-// AssignTaskRequest carries the list of employee IDs to assign to a task
-// (FR-TASK-02).  Supports assigning multiple employees simultaneously.
+// AssignedUserDTO carries display details of an assigned user
+type AssignedUserDTO struct {
+	ID       uuid.UUID `json:"id"`
+	FullName string    `json:"full_name"`
+	Email    string    `json:"email"`
+	Role     string    `json:"role"`
+}
+
+// AssignableUserDTO carries details for member dropdown selector
+type AssignableUserDTO struct {
+	ID       uuid.UUID `json:"id"`
+	OrgID    uuid.UUID `json:"org_id"`
+	Email    string    `json:"email"`
+	FullName string    `json:"full_name"`
+	Role     string    `json:"role"`
+	Status   string    `json:"status"`
+}
+
+// AssignTaskRequest carries the list of employee IDs, emails, or names to assign
+// (FR-TASK-02).
 type AssignTaskRequest struct {
-	UserIDs []uuid.UUID `json:"user_ids"`
+	UserIDs     []uuid.UUID `json:"user_ids,omitempty"`
+	Emails      []string    `json:"emails,omitempty"`
+	Identifiers []string    `json:"identifiers,omitempty"`
 }
 
 // UnassignTaskRequest carries the single employee to remove from a task.
 type UnassignTaskRequest struct {
-	UserID uuid.UUID `json:"user_id"`
+	UserID     *uuid.UUID `json:"user_id,omitempty"`
+	Identifier string     `json:"identifier,omitempty"`
 }
 
 // ChangeStatusRequest carries the desired new status (FR-TASK-04).
@@ -85,21 +106,21 @@ type TimerStopRequest struct {
 
 // ─── Response DTOs ────────────────────────────────────────────────────────────
 
-// TaskResponse is the public shape of a task returned to API callers.
-// The assigned_users slice is populated by the handler from a separate
-// assignment query when the full detail view is requested.
+// TaskResponse is the public representation of a task.
+// AssignedTo carries the user IDs when available; AssignedUsers carries full user details.
 type TaskResponse struct {
-	ID          uuid.UUID   `json:"id"`
-	OrgID       uuid.UUID   `json:"org_id"`
-	Title       string      `json:"title"`
-	Description *string     `json:"description,omitempty"`
-	Priority    Priority    `json:"priority"`
-	Status      Status      `json:"status"`
-	CreatedBy   uuid.UUID   `json:"created_by"`
-	DueDate     *time.Time  `json:"due_date,omitempty"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
-	AssignedTo  []uuid.UUID `json:"assigned_to,omitempty"`
+	ID            uuid.UUID         `json:"id"`
+	OrgID         uuid.UUID         `json:"org_id"`
+	Title         string            `json:"title"`
+	Description   *string           `json:"description,omitempty"`
+	Priority      Priority          `json:"priority"`
+	Status        Status            `json:"status"`
+	CreatedBy     uuid.UUID         `json:"created_by"`
+	DueDate       *time.Time        `json:"due_date,omitempty"`
+	CreatedAt     time.Time         `json:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
+	AssignedTo    []uuid.UUID       `json:"assigned_to,omitempty"`
+	AssignedUsers []AssignedUserDTO `json:"assigned_users,omitempty"`
 }
 
 // TimeLogResponse is the public shape of a single timer segment.
@@ -132,20 +153,21 @@ type TaskStatusCountsResponse struct {
 // ─── Conversion helpers ───────────────────────────────────────────────────────
 
 // TaskToResponse converts a Task model to its response DTO.
-// assignedTo may be nil when the caller did not request assignments.
-func TaskToResponse(t Task, assignedTo []uuid.UUID) TaskResponse {
+// assignedTo and assignedUsers may be nil when not requested.
+func TaskToResponse(t Task, assignedTo []uuid.UUID, assignedUsers []AssignedUserDTO) TaskResponse {
 	return TaskResponse{
-		ID:          t.ID.ID,
-		OrgID:       t.OrgID,
-		Title:       t.Title,
-		Description: t.Description,
-		Priority:    t.Priority,
-		Status:      t.Status,
-		CreatedBy:   t.CreatedBy,
-		DueDate:     t.DueDate,
-		CreatedAt:   t.CreatedAt,
-		UpdatedAt:   t.UpdatedAt,
-		AssignedTo:  assignedTo,
+		ID:            t.ID.ID,
+		OrgID:         t.OrgID,
+		Title:         t.Title,
+		Description:   t.Description,
+		Priority:      t.Priority,
+		Status:        t.Status,
+		CreatedBy:     t.CreatedBy,
+		DueDate:       t.DueDate,
+		CreatedAt:     t.CreatedAt,
+		UpdatedAt:     t.UpdatedAt,
+		AssignedTo:    assignedTo,
+		AssignedUsers: assignedUsers,
 	}
 }
 
