@@ -47,10 +47,12 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	tasks.Post("/", middleware.JWTAuth(), middleware.RequireRole("admin", "manager"), h.CreateTask)
 	tasks.Get("/", middleware.JWTAuth(), h.GetMyTasks)
 
-	// ── aggregate stats (must come before /:id) ───────────────────────────────
+	// ── aggregate stats & directory (must come before /:id) ───────────────────
 	stats := tasks.Group("/stats")
 	stats.Get("/status-counts", middleware.JWTAuth(), h.GetStatusCounts)
 	stats.Get("/overdue", middleware.JWTAuth(), h.GetOverdueTasks)
+
+	tasks.Get("/assignable-users", middleware.JWTAuth(), middleware.RequireRole("admin", "manager"), h.GetAssignableUsers)
 
 	// ── single-task routes ────────────────────────────────────────────────────
 	tasks.Get("/:id", middleware.JWTAuth(), h.GetTaskByID)

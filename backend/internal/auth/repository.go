@@ -27,6 +27,9 @@ import (
 // The real auth package must satisfy this interface.
 type UserRepository interface {
 	GetUserByID(userID uuid.UUID) (User, error)
+	GetUsersByOrgID(orgID uuid.UUID) ([]User, error)
+	FindUserByIdentifier(orgID uuid.UUID, identifier string) (User, error)
+	GetUsersByIDs(userIDs []uuid.UUID) ([]User, error)
 	// GetTeamMembersForManager returns all user IDs that belong to any team
 	// managed by managerID within orgID.  Used by FR-TASK-03 visibility query.
 	GetTeamMembersForManager(managerID, orgID uuid.UUID) ([]uuid.UUID, error)
@@ -50,11 +53,59 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 func (r *userRepository) GetUserByID(userID uuid.UUID) (User, error) {
 	var user User
-	err := r.db.Where("id = ?", userID).First(&user).Error
+	err := r.db.Where("id = ? AND deleted_at IS NULL", userID).First(&user).Error
 	if err != nil {
 		return User{}, err
 	}
 	return user, nil
+}
+
+func (r *userRepository) GetUsersByOrgID(orgID uuid.UUID) ([]User, error) {
+	var users []User
+	err := r.db.Where("org_id = ? AND deleted_at IS NULL", orgID).Order("full_name ASC").Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (r *userRepository) FindUserByIdentifier(orgID uuid.UUID, identifier string) (User, error) {
+	var user User
+	// Check if identifier is a UUID
+	if uid, err := uuid.Parse(identifier); err == nil {
+		if err := r.db.Where("id = ? AND org_id = ? AND deleted_at IS NULL", uid, orgID).First(&user).Error; err == nil {
+			return user, nil
+		}
+	}
+
+	// Lookup by exact or lower email
+	if err := r.db.Where("org_id = ? AND LOWER(email) = LOWER(?) AND deleted_at IS NULL", orgID, identifier).First(&user).Error; err == nil {
+		return user, nil
+	}
+
+	// Lookup by full name
+	if err := r.db.Where("org_id = ? AND LOWER(full_name) = LOWER(?) AND deleted_at IS NULL", orgID, identifier).First(&user).Error; err == nil {
+		return user, nil
+	}
+
+	// Partial match on full name
+	if err := r.db.Where("org_id = ? AND full_name ILIKE ? AND deleted_at IS NULL", orgID, "%"+identifier+"%").First(&user).Error; err == nil {
+		return user, nil
+	}
+
+	return User{}, gorm.ErrRecordNotFound
+}
+
+func (r *userRepository) GetUsersByIDs(userIDs []uuid.UUID) ([]User, error) {
+	if len(userIDs) == 0 {
+		return []User{}, nil
+	}
+	var users []User
+	err := r.db.Where("id IN ? AND deleted_at IS NULL", userIDs).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 // GetTeamMembersForManager returns the user IDs of every employee whose team

@@ -14,10 +14,31 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+func getUserIDFromCtx(c *fiber.Ctx) (uuid.UUID, error) {
+	if val, ok := c.Locals("user_id").(string); ok && val != "" {
+		return uuid.Parse(val)
+	}
+	if val, ok := c.Locals("user_id").(uuid.UUID); ok {
+		return val, nil
+	}
+	if val := c.Get("X-User-ID"); val != "" {
+		return uuid.Parse(val)
+	}
+	return uuid.Nil, common.ErrUnauthorized
+}
+
 // ListTimesheets handles GET /api/v1/timesheets
 func (h *Handler) ListTimesheets(c *fiber.Ctx) error {
 	userIDStr := c.Query("user_id")
-	userID, err := uuid.Parse(userIDStr)
+	var userID uuid.UUID
+	var err error
+
+	if userIDStr != "" {
+		userID, err = uuid.Parse(userIDStr)
+	} else {
+		userID, err = getUserIDFromCtx(c)
+	}
+
 	if err != nil {
 		return common.Fail(c, fiber.StatusBadRequest, "valid user_id query param required")
 	}
@@ -71,8 +92,10 @@ func (h *Handler) ApproveTimesheet(c *fiber.Ctx) error {
 		return common.Fail(c, fiber.StatusBadRequest, "invalid timesheet id")
 	}
 
-	// Pull reviewer ID from mock locals (swap for JWT claims later)
-	reviewerID := c.Locals("user_id").(uuid.UUID)
+	reviewerID, err := getUserIDFromCtx(c)
+	if err != nil {
+		return common.Fail(c, fiber.StatusUnauthorized, "unauthorized")
+	}
 
 	if err := h.service.Approve(id, reviewerID); err != nil {
 		return common.HandleError(c, err)
@@ -99,7 +122,10 @@ func (h *Handler) RejectTimesheet(c *fiber.Ctx) error {
 		return common.Fail(c, fiber.StatusBadRequest, "rejection reason is required")
 	}
 
-	reviewerID := c.Locals("user_id").(uuid.UUID)
+	reviewerID, err := getUserIDFromCtx(c)
+	if err != nil {
+		return common.Fail(c, fiber.StatusUnauthorized, "unauthorized")
+	}
 
 	if err := h.service.Reject(id, reviewerID, body.Reason); err != nil {
 		return common.HandleError(c, err)

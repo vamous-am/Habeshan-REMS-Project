@@ -19,8 +19,16 @@ func NewHandler(svc *Service) *Handler {
 // Every handler in this file uses this — it's the enforcement point for
 // "an admin can only ever act within their own org."
 func orgIDFromCtx(c *fiber.Ctx) (uuid.UUID, error) {
-	raw, _ := c.Locals(middleware.LocalOrgID).(string)
-	return uuid.Parse(raw)
+	if raw, ok := c.Locals(middleware.LocalOrgID).(string); ok && raw != "" {
+		return uuid.Parse(raw)
+	}
+	if raw, ok := c.Locals(middleware.LocalOrgID).(uuid.UUID); ok {
+		return raw, nil
+	}
+	if raw := c.Get("X-Org-ID"); raw != "" {
+		return uuid.Parse(raw)
+	}
+	return uuid.Nil, common.ErrUnauthorized
 }
 
 // ── User CRUD ────────────────────────────────────────────────────────────────

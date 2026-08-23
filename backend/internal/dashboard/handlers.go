@@ -15,11 +15,27 @@ func NewDashboardService(db *gorm.DB) *DashboardService {
 	return &DashboardService{db: db}
 }
 
+func getOrgIDFromCtx(c *fiber.Ctx) (uuid.UUID, error) {
+	if val, ok := c.Locals("org_id").(string); ok && val != "" {
+		return uuid.Parse(val)
+	}
+	if val, ok := c.Locals("org_id").(uuid.UUID); ok {
+		return val, nil
+	}
+	if val := c.Get("X-Org-ID"); val != "" {
+		return uuid.Parse(val)
+	}
+	return uuid.Nil, common.ErrUnauthorized
+}
+
 // GetManagerDashboard handles GET /api/v1/dashboard/manager
 // Now wired to live data — FR-DASH-01
 func GetManagerDashboardLive(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		orgID := c.Locals("org_id").(uuid.UUID)
+		orgID, err := getOrgIDFromCtx(c)
+		if err != nil {
+			return common.Fail(c, fiber.StatusUnauthorized, "unauthorized")
+		}
 
 		// Attendance today
 		var present int64

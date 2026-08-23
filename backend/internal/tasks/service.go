@@ -35,7 +35,11 @@ type TaskService interface {
 
 	// FR-TASK-02
 	AssignTask(taskID uuid.UUID, userIDs []uuid.UUID, callerID, orgID uuid.UUID) error
+	AssignTaskByIdentifiers(taskID uuid.UUID, userIDs []uuid.UUID, emails []string, identifiers []string, callerID, orgID uuid.UUID) error
 	UnassignTask(taskID, userID uuid.UUID, callerID, orgID uuid.UUID) error
+	UnassignTaskByIdentifier(taskID uuid.UUID, identifier string, callerID, orgID uuid.UUID) error
+	GetAssignableUsers(callerID, orgID uuid.UUID) ([]auth.User, error)
+	GetUsersDetails(userIDs []uuid.UUID) ([]AssignedUserDTO, error)
 
 	// FR-TASK-04
 	UpdateTaskStatus(taskID uuid.UUID, newStatus Status, callerID, orgID uuid.UUID) error

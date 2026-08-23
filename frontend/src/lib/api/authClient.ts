@@ -100,12 +100,16 @@ const AUTH_TOKEN_KEY = "auth_token";
 const USER_ID_KEY = "x-user-id";
 const ORG_ID_KEY = "x-org-id";
 const USER_ROLE_KEY = "user-role";
+const USER_NAME_KEY = "user-name";
+const USER_EMAIL_KEY = "user-email";
 
 export function persistAuthSession({ token, user }: AuthResponse): void {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(USER_ID_KEY, user.id);
   localStorage.setItem(ORG_ID_KEY, user.org_id);
   localStorage.setItem(USER_ROLE_KEY, user.role);
+  if (user.full_name) localStorage.setItem(USER_NAME_KEY, user.full_name);
+  if (user.email) localStorage.setItem(USER_EMAIL_KEY, user.email);
 }
 
 export function clearAuthSession(): void {
@@ -113,6 +117,8 @@ export function clearAuthSession(): void {
   localStorage.removeItem(USER_ID_KEY);
   localStorage.removeItem(ORG_ID_KEY);
   localStorage.removeItem(USER_ROLE_KEY);
+  localStorage.removeItem(USER_NAME_KEY);
+  localStorage.removeItem(USER_EMAIL_KEY);
 }
 
 export function getAuthToken(): string | null {
@@ -121,6 +127,18 @@ export function getAuthToken(): string | null {
 
 export function getCurrentUserId(): string | null {
   return localStorage.getItem(USER_ID_KEY);
+}
+
+export function getCurrentOrgId(): string | null {
+  return localStorage.getItem(ORG_ID_KEY);
+}
+
+export function getCurrentUserName(): string | null {
+  return localStorage.getItem(USER_NAME_KEY);
+}
+
+export function getCurrentUserEmail(): string | null {
+  return localStorage.getItem(USER_EMAIL_KEY);
 }
 
 export function getUserRole(): UserRole | null {
