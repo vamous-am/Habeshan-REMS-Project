@@ -1,3 +1,6 @@
+import { getAuthToken, getCurrentUserId } from '../../lib/api/authClient';
+import { generateDeviceHash } from '../../lib/offline-db/crypto';
+
 export interface AttendanceRecord {
   id?: string;
   record_uuid: string;
@@ -13,6 +16,7 @@ const API_BASE = '/api/v1/attendance';
 
 function getAuthHeader(): Record<string, string> {
   const token =
+    getAuthToken() ||
     localStorage.getItem('token') ||
     localStorage.getItem('jwt_token') ||
     localStorage.getItem('access_token') ||
@@ -22,6 +26,10 @@ function getAuthHeader(): Record<string, string> {
 
 export async function clockInApi(): Promise<AttendanceRecord> {
   const recordUUID = crypto.randomUUID();
+  const userId = getCurrentUserId() || '';
+  const nowISO = new Date().toISOString();
+  const deviceHash = await generateDeviceHash(recordUUID, userId, 'CLOCK_IN', nowISO);
+
   const res = await fetch(`${API_BASE}/clock-in`, {
     method: 'POST',
     headers: {
@@ -30,7 +38,7 @@ export async function clockInApi(): Promise<AttendanceRecord> {
     },
     body: JSON.stringify({
       record_uuid: recordUUID,
-      device_hash: 'ONLINE_DIRECT_HASH',
+      device_hash: deviceHash,
     }),
   });
 
@@ -40,11 +48,15 @@ export async function clockInApi(): Promise<AttendanceRecord> {
   }
 
   const responseJson = await res.json();
-  return responseJson.data;
+  return responseJson.data ?? responseJson;
 }
 
 export async function clockOutApi(): Promise<AttendanceRecord> {
   const recordUUID = crypto.randomUUID();
+  const userId = getCurrentUserId() || '';
+  const nowISO = new Date().toISOString();
+  const deviceHash = await generateDeviceHash(recordUUID, userId, 'CLOCK_OUT', nowISO);
+
   const res = await fetch(`${API_BASE}/clock-out`, {
     method: 'POST',
     headers: {
@@ -53,7 +65,7 @@ export async function clockOutApi(): Promise<AttendanceRecord> {
     },
     body: JSON.stringify({
       record_uuid: recordUUID,
-      device_hash: 'ONLINE_DIRECT_HASH',
+      device_hash: deviceHash,
     }),
   });
 
@@ -63,7 +75,7 @@ export async function clockOutApi(): Promise<AttendanceRecord> {
   }
 
   const responseJson = await res.json();
-  return responseJson.data;
+  return responseJson.data ?? responseJson;
 }
 
 /**

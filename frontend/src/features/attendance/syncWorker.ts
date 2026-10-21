@@ -1,19 +1,8 @@
 import { db } from '../../lib/offline-db/db';
+import { generateDeviceHash } from '../../lib/offline-db/crypto';
+import { getAuthToken } from '../../lib/api/authClient';
 
-// Computes standard SHA-256 hash in browser environment
-export async function generateDeviceHash(
-  recordUuid: string,
-  userId: string,
-  actionType: string,
-  timestamp: string
-): Promise<string> {
-  const rawString = `${recordUuid}|${userId}|${actionType}|${timestamp}`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(rawString);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+export { generateDeviceHash };
 
 export async function syncOfflineLogs(): Promise<void> {
   if (!navigator.onLine) return;
@@ -30,11 +19,12 @@ export async function syncOfflineLogs(): Promise<void> {
   await db.offlineLogs.where('id').anyOf(logIds).modify({ sync_status: 'PENDING_SYNC' });
 
   try {
+    const token = getAuthToken() || localStorage.getItem('token') || '';
     const response = await fetch('/api/v1/attendance/sync', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ records: pendingLogs }),
     });
