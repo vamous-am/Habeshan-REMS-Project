@@ -3,9 +3,7 @@ import { clockInApi, clockOutApi, AttendanceRecord } from './attendanceApi';
 import './ClockWidget.css';
 import { recordOfflineAttendance } from './offlineService';
 import { SyncStatusBadge } from '../../components/SyncStatusBadge';
-
-const CURRENT_ORG_ID = 'current-org';
-const CURRENT_USER_ID = 'current-user';
+import { getCurrentOrgId, getCurrentUserId } from '../../lib/api/authClient';
 
 export const ClockWidget: React.FC = () => {
   const [activeSession, setActiveSession] = useState<AttendanceRecord | null>(null);
@@ -30,17 +28,34 @@ export const ClockWidget: React.FC = () => {
     };
   }, []);
 
+  const getAuthContext = (): { orgId: string; userId: string } | null => {
+    const orgId = getCurrentOrgId();
+    const userId = getCurrentUserId();
+    if (!orgId || !userId) {
+      setError('Active session not found. Please log in again.');
+      return null;
+    }
+    return { orgId, userId };
+  };
+
   const handleClockIn = async () => {
     setLoading(true);
     setError(null);
     const nowISO = new Date().toISOString();
 
+    const authCtx = getAuthContext();
+    if (!authCtx) {
+      setLoading(false);
+      return;
+    }
+    const { orgId, userId } = authCtx;
+
     if (!navigator.onLine) {
       try {
-        await recordOfflineAttendance(CURRENT_ORG_ID, CURRENT_USER_ID, 'CLOCK_IN');
+        await recordOfflineAttendance(orgId, userId, 'CLOCK_IN');
         setActiveSession({
           record_uuid: crypto.randomUUID(),
-          user_id: CURRENT_USER_ID,
+          user_id: userId,
           clock_in: nowISO,
           sync_status: 'OFFLINE_LOGGED',
         } as AttendanceRecord);
@@ -59,10 +74,10 @@ export const ClockWidget: React.FC = () => {
     } catch (err) {
       console.warn('Online Clock In failed, queueing offline:', err);
       try {
-        await recordOfflineAttendance(CURRENT_ORG_ID, CURRENT_USER_ID, 'CLOCK_IN');
+        await recordOfflineAttendance(orgId, userId, 'CLOCK_IN');
         setActiveSession({
           record_uuid: crypto.randomUUID(),
-          user_id: CURRENT_USER_ID,
+          user_id: userId,
           clock_in: nowISO,
           sync_status: 'OFFLINE_LOGGED',
         } as AttendanceRecord);
@@ -80,9 +95,16 @@ export const ClockWidget: React.FC = () => {
     setError(null);
     const nowISO = new Date().toISOString();
 
+    const authCtx = getAuthContext();
+    if (!authCtx) {
+      setLoading(false);
+      return;
+    }
+    const { orgId, userId } = authCtx;
+
     if (!navigator.onLine) {
       try {
-        await recordOfflineAttendance(CURRENT_ORG_ID, CURRENT_USER_ID, 'CLOCK_OUT');
+        await recordOfflineAttendance(orgId, userId, 'CLOCK_OUT');
         setActiveSession((prev) =>
           prev
             ? ({
@@ -107,7 +129,7 @@ export const ClockWidget: React.FC = () => {
     } catch (err) {
       console.warn('Online Clock Out failed, queueing offline:', err);
       try {
-        await recordOfflineAttendance(CURRENT_ORG_ID, CURRENT_USER_ID, 'CLOCK_OUT');
+        await recordOfflineAttendance(orgId, userId, 'CLOCK_OUT');
         setActiveSession((prev) =>
           prev
             ? ({

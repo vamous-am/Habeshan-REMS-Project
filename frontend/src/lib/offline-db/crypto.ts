@@ -1,6 +1,6 @@
 /**
- * Generates a SHA-256 hash incorporating system payload & client salt
- * to prevent system-clock manipulation while offline.
+ * Generates a SHA-256 tamper-evident hash matching backend ComputeRecordHash
+ * (record_uuid|user_id|action_type|timestamp).
  */
 export async function generateDeviceHash(
   recordUuid: string,
@@ -8,8 +8,7 @@ export async function generateDeviceHash(
   actionType: string,
   timestamp: string
 ): Promise<string> {
-  const salt = window.navigator.userAgent; // Hardware/browser client signature
-  const rawPayload = `${recordUuid}:${userId}:${actionType}:${timestamp}:${salt}`;
+  const rawPayload = `${recordUuid}|${userId}|${actionType}|${timestamp}`;
 
   const encoder = new TextEncoder();
   const data = encoder.encode(rawPayload);
