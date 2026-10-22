@@ -25,6 +25,11 @@ type TaskTimeLogRepository interface {
 	// no open segment exists.
 	GetActiveTimeLog(taskID, userID uuid.UUID) (TaskTimeLog, error)
 
+	// HasActiveTimeLog returns true if any open timer segment (stopped_at IS NULL)
+	// exists for the task within the given organisation. The orgID parameter is
+	// mandatory so that the query is always tenant-scoped at the repository level.
+	HasActiveTimeLog(taskID, orgID uuid.UUID) (bool, error)
+
 	// GetTimeLogsByTaskID returns the full timer history for a task ordered
 	// by started_at ASC (auditable history, FR-TASK-08).
 	GetTimeLogsByTaskID(taskID uuid.UUID) ([]TaskTimeLog, error)
@@ -88,6 +93,17 @@ func (r *taskTimeLogRepository) GetActiveTimeLog(taskID, userID uuid.UUID) (Task
 		return TaskTimeLog{}, err
 	}
 	return log, nil
+}
+
+func (r *taskTimeLogRepository) HasActiveTimeLog(taskID, orgID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&TaskTimeLog{}).
+		Where("task_id = ? AND org_id = ? AND stopped_at IS NULL", taskID, orgID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 // GetTimeLogsByTaskID returns all timer segments for a task in chronological

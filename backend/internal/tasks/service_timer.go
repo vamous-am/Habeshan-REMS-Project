@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/auth"
+	"github.com/habeshan-rems/backend/internal/common"
 	"gorm.io/gorm"
 )
 
@@ -51,6 +52,11 @@ func (s *taskService) StartTimer(req TimerStartRequest, callerID, orgID uuid.UUI
 		return TaskTimeLog{}, fmt.Errorf("%w: you are not assigned to this task", ErrForbidden)
 	}
 
+	// Reject timer operations on completed tasks — completed is a terminal status.
+	if task.Status == StatusCompleted {
+		return TaskTimeLog{}, fmt.Errorf("%w: cannot start a timer on a completed task", ErrBadRequest)
+	}
+
 	// Idempotency: same record_uuid means this start was already processed.
 	if existing, hit, err := s.idempotentLookup(req.RecordUUID); err != nil {
 		return TaskTimeLog{}, err
@@ -68,12 +74,13 @@ func (s *taskService) StartTimer(req TimerStartRequest, callerID, orgID uuid.UUI
 	}
 
 	entry := TaskTimeLog{
-		TaskID:     task.ID.ID,
-		UserID:     callerID,
-		StartedAt:  req.StartedAt,
-		SyncStatus: req.SyncStatus,
-		DeviceHash: req.DeviceHash,
-		RecordUUID: req.RecordUUID, // immutable after insert
+		TenantScoped: common.TenantScoped{OrgID: orgID},
+		TaskID:       task.ID.ID,
+		UserID:       callerID,
+		StartedAt:    req.StartedAt,
+		SyncStatus:   req.SyncStatus,
+		DeviceHash:   req.DeviceHash,
+		RecordUUID:   req.RecordUUID, // immutable after insert
 	}
 
 	if err := s.timeLogRepo.CreateTimeLog(&entry); err != nil {
@@ -162,6 +169,10 @@ func (s *taskService) ResumeTimer(req TimerResumeRequest, callerID, orgID uuid.U
 		}
 		return TaskTimeLog{}, ErrInternal
 	}
+	// Reject timer operations on completed tasks — completed is a terminal status.
+	if task.Status == StatusCompleted {
+		return TaskTimeLog{}, fmt.Errorf("%w: cannot resume a timer on a completed task", ErrBadRequest)
+	}
 	if task.Status != StatusPaused {
 		return TaskTimeLog{}, fmt.Errorf("%w: task is not paused", ErrConflict)
 	}
@@ -176,12 +187,13 @@ func (s *taskService) ResumeTimer(req TimerResumeRequest, callerID, orgID uuid.U
 	}
 
 	entry := TaskTimeLog{
-		TaskID:     task.ID.ID,
-		UserID:     callerID,
-		StartedAt:  req.ResumedAt,
-		SyncStatus: req.SyncStatus,
-		DeviceHash: req.DeviceHash,
-		RecordUUID: req.RecordUUID, // immutable after insert
+		TenantScoped: common.TenantScoped{OrgID: orgID},
+		TaskID:       task.ID.ID,
+		UserID:       callerID,
+		StartedAt:    req.ResumedAt,
+		SyncStatus:   req.SyncStatus,
+		DeviceHash:   req.DeviceHash,
+		RecordUUID:   req.RecordUUID, // immutable after insert
 	}
 
 	if err := s.timeLogRepo.CreateTimeLog(&entry); err != nil {

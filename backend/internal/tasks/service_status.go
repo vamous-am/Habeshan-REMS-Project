@@ -19,13 +19,13 @@ import (
 //
 //	to_do       → in_progress, blocked
 //	in_progress → paused, blocked, completed
-//	paused      → in_progress, blocked
+//	paused      → in_progress, blocked, completed
 //	blocked     → in_progress, to_do
 //	completed   → (terminal)
 var allowedTransitions = map[Status][]Status{
 	StatusToDo:       {StatusInProgress, StatusBlocked},
 	StatusInProgress: {StatusPaused, StatusBlocked, StatusCompleted},
-	StatusPaused:     {StatusInProgress, StatusBlocked},
+	StatusPaused:     {StatusInProgress, StatusBlocked, StatusCompleted},
 	StatusBlocked:    {StatusInProgress, StatusToDo},
 	StatusCompleted:  {},
 }
@@ -70,6 +70,18 @@ func (s *taskService) UpdateTaskStatus(taskID uuid.UUID, newStatus Status, calle
 	}
 	if !isValidTransition(task.Status, newStatus) {
 		return fmt.Errorf("%w: cannot transition from %q to %q", ErrBadRequest, task.Status, newStatus)
+	}
+
+	// Active-timer guard: prevent completing a task while a timer is actively running.
+	// orgID is passed explicitly so the repository query is always tenant-scoped.
+	if newStatus == StatusCompleted {
+		hasActive, err := s.timeLogRepo.HasActiveTimeLog(taskID, orgID)
+		if err != nil {
+			return ErrInternal
+		}
+		if hasActive {
+			return fmt.Errorf("%w: cannot complete task while a timer is actively running; stop the timer first", ErrConflict)
+		}
 	}
 
 	if err := s.taskRepo.UpdateTaskStatus(taskID, newStatus); err != nil {
