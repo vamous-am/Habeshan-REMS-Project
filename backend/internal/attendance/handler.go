@@ -54,8 +54,8 @@ func (h *Handler) ClockIn(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return common.Fail(c, fiber.StatusBadRequest, "Invalid request body")
 	}
-	if req.RecordUUID == uuid.Nil || req.DeviceHash == "" {
-		return common.Fail(c, fiber.StatusBadRequest, "record_uuid and device_hash are required")
+	if req.RecordUUID == uuid.Nil || req.DeviceHash == "" || req.Timestamp == "" {
+		return common.Fail(c, fiber.StatusBadRequest, "record_uuid, device_hash, and timestamp are required")
 	}
 
 	orgID, userID := getAuthContext(c)
@@ -72,8 +72,8 @@ func (h *Handler) ClockOut(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return common.Fail(c, fiber.StatusBadRequest, "Invalid request body")
 	}
-	if req.RecordUUID == uuid.Nil || req.DeviceHash == "" {
-		return common.Fail(c, fiber.StatusBadRequest, "record_uuid and device_hash are required")
+	if req.RecordUUID == uuid.Nil || req.DeviceHash == "" || req.Timestamp == "" {
+		return common.Fail(c, fiber.StatusBadRequest, "record_uuid, device_hash, and timestamp are required")
 	}
 
 	orgID, userID := getAuthContext(c)

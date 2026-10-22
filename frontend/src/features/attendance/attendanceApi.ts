@@ -39,6 +39,7 @@ export async function clockInApi(): Promise<AttendanceRecord> {
     body: JSON.stringify({
       record_uuid: recordUUID,
       device_hash: deviceHash,
+      timestamp: nowISO,
     }),
   });
 
@@ -66,6 +67,7 @@ export async function clockOutApi(): Promise<AttendanceRecord> {
     body: JSON.stringify({
       record_uuid: recordUUID,
       device_hash: deviceHash,
+      timestamp: nowISO,
     }),
   });
 

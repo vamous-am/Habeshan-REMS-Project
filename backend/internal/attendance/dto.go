@@ -10,12 +10,14 @@ import (
 type ClockInRequest struct {
 	RecordUUID uuid.UUID `json:"record_uuid"`
 	DeviceHash string    `json:"device_hash"`
+	Timestamp  string    `json:"timestamp"`
 }
 
 // ClockOutRequest payload for real-time online clock-out
 type ClockOutRequest struct {
 	RecordUUID uuid.UUID `json:"record_uuid"`
 	DeviceHash string    `json:"device_hash"`
+	Timestamp  string    `json:"timestamp"`
 }
 
 // SyncRecordRequest represents an individual attendance log sent from offline queue
