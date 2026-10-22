@@ -11,7 +11,6 @@ import (
 // StartScheduler kicks off a goroutine that generates draft timesheets
 // automatically at the end of each weekly period.
 // Call this once from main.go after the DB is initialised.
-// FR-TS-01
 func StartScheduler(db *gorm.DB, orgID uuid.UUID) {
 	service := NewService(db)
 
