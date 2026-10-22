@@ -143,9 +143,7 @@ type TaskAssignment struct {
 // Each start, resume, pause, and stop produces a new row — history is never
 // overwritten, keeping the log auditable (FR-TASK-08).
 //
-// Embeds common.ID (uuid PK) and common.Timestamps.
-// No OrgID — org isolation is reached transitively through task_id → tasks.org_id,
-// which avoids the redundant column while keeping queries correct.
+// Embeds common.ID (uuid PK), common.TenantScoped (OrgID with index), and common.Timestamps.
 //
 // record_uuid — client-generated idempotency key (FR-TASK-10 / FR-ATT-08).
 //
@@ -155,6 +153,7 @@ type TaskAssignment struct {
 // sync_status — offline sync state machine, same values as attendance_logs.
 type TaskTimeLog struct {
 	common.ID
+	common.TenantScoped
 	common.Timestamps
 
 	TaskID          uuid.UUID  `gorm:"type:uuid;not null;index"                         json:"task_id"`

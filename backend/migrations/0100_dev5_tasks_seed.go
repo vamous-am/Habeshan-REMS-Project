@@ -292,7 +292,7 @@ func MigrateSeedTasks(db *gorm.DB) error {
 		timeLogs := []tasks.TaskTimeLog{
 			// Task 1 (Alice): Start → Pause (Power Outage 75 min) → Resume → Stop (75 min) = 150 min total
 			{
-				ID: common.ID{ID: timeLogUUID(1)}, TaskID: taskUUID(1), UserID: seedAliceID,
+				ID: common.ID{ID: timeLogUUID(1)}, TenantScoped: common.TenantScoped{OrgID: seedOrgID}, TaskID: taskUUID(1), UserID: seedAliceID,
 				StartedAt:       now.AddDate(0, 0, -1).Add(-3 * time.Hour),
 				StoppedAt:       timePtr(now.AddDate(0, 0, -1).Add(-2*time.Hour - 45*time.Minute)),
 				DurationMinutes: intPtr(75),
@@ -303,7 +303,7 @@ func MigrateSeedTasks(db *gorm.DB) error {
 				Timestamps:      common.Timestamps{CreatedAt: now.AddDate(0, 0, -1), UpdatedAt: now.AddDate(0, 0, -1)},
 			},
 			{
-				ID: common.ID{ID: timeLogUUID(2)}, TaskID: taskUUID(1), UserID: seedAliceID,
+				ID: common.ID{ID: timeLogUUID(2)}, TenantScoped: common.TenantScoped{OrgID: seedOrgID}, TaskID: taskUUID(1), UserID: seedAliceID,
 				StartedAt:       now.AddDate(0, 0, -1).Add(-2 * time.Hour),
 				StoppedAt:       timePtr(now.AddDate(0, 0, -1).Add(-45 * time.Minute)),
 				DurationMinutes: intPtr(75),
@@ -314,7 +314,7 @@ func MigrateSeedTasks(db *gorm.DB) error {
 			},
 			// Task 3 (Bob): Start → Paused with "Personal Break" — closed (100 min)
 			{
-				ID: common.ID{ID: timeLogUUID(3)}, TaskID: taskUUID(3), UserID: seedBobID,
+				ID: common.ID{ID: timeLogUUID(3)}, TenantScoped: common.TenantScoped{OrgID: seedOrgID}, TaskID: taskUUID(3), UserID: seedBobID,
 				StartedAt:       now.AddDate(0, 0, -2).Add(-4 * time.Hour),
 				StoppedAt:       timePtr(now.AddDate(0, 0, -2).Add(-2*time.Hour - 20*time.Minute)),
 				DurationMinutes: intPtr(100),
@@ -326,7 +326,7 @@ func MigrateSeedTasks(db *gorm.DB) error {
 			},
 			// Task 5 (Alice): Completed — 2 segments 240 min each
 			{
-				ID: common.ID{ID: timeLogUUID(4)}, TaskID: taskUUID(5), UserID: seedAliceID,
+				ID: common.ID{ID: timeLogUUID(4)}, TenantScoped: common.TenantScoped{OrgID: seedOrgID}, TaskID: taskUUID(5), UserID: seedAliceID,
 				StartedAt:       now.AddDate(0, 0, -6).Add(-6 * time.Hour),
 				StoppedAt:       timePtr(now.AddDate(0, 0, -6).Add(-2 * time.Hour)),
 				DurationMinutes: intPtr(240),
@@ -336,7 +336,7 @@ func MigrateSeedTasks(db *gorm.DB) error {
 				Timestamps:      common.Timestamps{CreatedAt: now.AddDate(0, 0, -6), UpdatedAt: now.AddDate(0, 0, -6)},
 			},
 			{
-				ID: common.ID{ID: timeLogUUID(5)}, TaskID: taskUUID(5), UserID: seedAliceID,
+				ID: common.ID{ID: timeLogUUID(5)}, TenantScoped: common.TenantScoped{OrgID: seedOrgID}, TaskID: taskUUID(5), UserID: seedAliceID,
 				StartedAt:       now.AddDate(0, 0, -5).Add(-7 * time.Hour),
 				StoppedAt:       timePtr(now.AddDate(0, 0, -5).Add(-3 * time.Hour)),
 				DurationMinutes: intPtr(240),
@@ -347,7 +347,7 @@ func MigrateSeedTasks(db *gorm.DB) error {
 			},
 			// Task 7 (Bob): RUNNING — open segment (stopped_at = NULL, ~35 min elapsed)
 			{
-				ID: common.ID{ID: timeLogUUID(6)}, TaskID: taskUUID(7), UserID: seedBobID,
+				ID: common.ID{ID: timeLogUUID(6)}, TenantScoped: common.TenantScoped{OrgID: seedOrgID}, TaskID: taskUUID(7), UserID: seedBobID,
 				StartedAt:       now.Add(-35 * time.Minute),
 				StoppedAt:       nil,
 				DurationMinutes: nil,
@@ -358,7 +358,7 @@ func MigrateSeedTasks(db *gorm.DB) error {
 			},
 			// Task 10 (Bob): Completed late — 2 segments 180 min each
 			{
-				ID: common.ID{ID: timeLogUUID(7)}, TaskID: taskUUID(10), UserID: seedBobID,
+				ID: common.ID{ID: timeLogUUID(7)}, TenantScoped: common.TenantScoped{OrgID: seedOrgID}, TaskID: taskUUID(10), UserID: seedBobID,
 				StartedAt:       now.AddDate(0, 0, -8).Add(-5 * time.Hour),
 				StoppedAt:       timePtr(now.AddDate(0, 0, -8).Add(-2 * time.Hour)),
 				DurationMinutes: intPtr(180),
@@ -368,7 +368,7 @@ func MigrateSeedTasks(db *gorm.DB) error {
 				Timestamps:      common.Timestamps{CreatedAt: now.AddDate(0, 0, -8), UpdatedAt: now.AddDate(0, 0, -8)},
 			},
 			{
-				ID: common.ID{ID: timeLogUUID(8)}, TaskID: taskUUID(10), UserID: seedBobID,
+				ID: common.ID{ID: timeLogUUID(8)}, TenantScoped: common.TenantScoped{OrgID: seedOrgID}, TaskID: taskUUID(10), UserID: seedBobID,
 				StartedAt:       now.AddDate(0, 0, -7).Add(-6 * time.Hour),
 				StoppedAt:       timePtr(now.AddDate(0, 0, -7).Add(-3 * time.Hour)),
 				DurationMinutes: intPtr(180),

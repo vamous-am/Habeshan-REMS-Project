@@ -60,7 +60,7 @@ func (s *Service) generateForUser(orgID, userID uuid.UUID, periodStart, periodEn
 
 	var taskMinutes int
 	s.db.Model(&tasks.TaskTimeLog{}).
-		Where("user_id = ? AND started_at >= ? AND started_at < ?", userID, periodStart, periodEnd).
+		Where("org_id = ? AND user_id = ? AND started_at >= ? AND started_at < ?", orgID, userID, periodStart, periodEnd).
 		Where("sync_status = ? AND duration_minutes IS NOT NULL", tasks.SyncSyncedVerified).
 		Select("COALESCE(SUM(duration_minutes), 0)").
 		Scan(&taskMinutes)
