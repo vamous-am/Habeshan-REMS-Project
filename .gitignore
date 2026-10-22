@@ -15,6 +15,9 @@ frontend/dist/
 # Root-level node_modules (should never exist — catches accidental npm installs at repo root)
 node_modules/
 
+# vite-monorepo experiment — node_modules only, keep source files
+vite-monorepo/node_modules/
+
 # OS
 .DS_Store
 Thumbs.db
