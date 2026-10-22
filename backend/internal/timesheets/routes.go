@@ -11,9 +11,15 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	handler := NewHandler(service)
 
 	ts := app.Group("/api/v1/timesheets", middleware.JWTAuth())
+
+	// Employee + Manager + Admin: list and get
 	ts.Get("/", handler.ListTimesheets)
 	ts.Get("/:id", handler.GetTimesheet)
-	ts.Put("/:id/submit", handler.SubmitTimesheet)
-	ts.Put("/:id/approve", handler.ApproveTimesheet)
-	ts.Put("/:id/reject", handler.RejectTimesheet)
+
+	// Only the owning employee may submit their timesheet
+	ts.Put("/:id/submit", middleware.RequireRole("employee"), handler.SubmitTimesheet)
+
+	// Managers (team-scoped) and admins (org-wide) may approve or reject timesheets
+	ts.Put("/:id/approve", middleware.RequireRole("manager", "admin"), handler.ApproveTimesheet)
+	ts.Put("/:id/reject", middleware.RequireRole("manager", "admin"), handler.RejectTimesheet)
 }

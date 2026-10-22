@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/attendance"
+	"github.com/habeshan-rems/backend/internal/auth"
+	"github.com/habeshan-rems/backend/internal/common"
 	"github.com/habeshan-rems/backend/internal/notifications"
 	"github.com/habeshan-rems/backend/internal/tasks"
 	"gorm.io/gorm"
@@ -19,7 +21,7 @@ func NewService(db *gorm.DB) *Service {
 	return &Service{db: db}
 }
 
-// GenerateDraftTimesheets — FR-TS-01
+// GenerateDraftTimesheets creates draft timesheet entries for verified attendance logs in a period.
 func (s *Service) GenerateDraftTimesheets(orgID uuid.UUID, periodStart, periodEnd time.Time) error {
 	var userIDs []uuid.UUID
 	if err := s.db.
@@ -77,11 +79,18 @@ func (s *Service) generateForUser(orgID, userID uuid.UUID, periodStart, periodEn
 	return s.db.Create(&ts).Error
 }
 
-// Submit transitions a timesheet from draft → submitted — FR-TS-02/03
-func (s *Service) Submit(timesheetID uuid.UUID) error {
+// Submit transitions a timesheet from draft/rejected → submitted.
+// Caller must be the owner of the timesheet.
+// Manager/admin submit-on-behalf is prohibited.
+func (s *Service) Submit(timesheetID, callerID uuid.UUID) error {
 	var ts Timesheet
 	if err := s.db.First(&ts, "id = ?", timesheetID).Error; err != nil {
 		return errors.New("timesheet not found")
+	}
+
+	// Ownership check: only the owning employee may submit or resubmit
+	if ts.UserID != callerID {
+		return common.ErrForbidden
 	}
 
 	if ts.Status != "draft" && ts.Status != "rejected" {
@@ -99,8 +108,10 @@ func (s *Service) Submit(timesheetID uuid.UUID) error {
 	return nil
 }
 
-// Approve transitions a timesheet from submitted → approved — FR-TS-04/05
-func (s *Service) Approve(timesheetID, reviewerID uuid.UUID) error {
+// Approve transitions a timesheet from submitted → approved.
+// Manager callers are scoped to teams they manage.
+// Admin callers are unrestricted within their organization.
+func (s *Service) Approve(timesheetID, reviewerID uuid.UUID, reviewerRole auth.Role, orgID uuid.UUID) error {
 	var ts Timesheet
 	if err := s.db.First(&ts, "id = ?", timesheetID).Error; err != nil {
 		return errors.New("timesheet not found")
@@ -108,6 +119,13 @@ func (s *Service) Approve(timesheetID, reviewerID uuid.UUID) error {
 
 	if ts.Status != "submitted" {
 		return errors.New("only submitted timesheets can be approved")
+	}
+
+	// Team-scope check: managers can only approve their own team members
+	if reviewerRole == auth.RoleManager {
+		if err := s.assertManagerOwnsEmployee(orgID, reviewerID, ts.UserID); err != nil {
+			return err
+		}
 	}
 
 	if err := s.db.Model(&ts).Updates(map[string]any{
@@ -122,9 +140,10 @@ func (s *Service) Approve(timesheetID, reviewerID uuid.UUID) error {
 	return nil
 }
 
-// Reject transitions a timesheet from submitted → rejected — FR-TS-04/06
-// Rejection reason is mandatory.
-func (s *Service) Reject(timesheetID, reviewerID uuid.UUID, reason string) error {
+// Reject transitions a timesheet from submitted → rejected.
+// Manager callers are scoped to teams they manage.
+// Admin callers are unrestricted within their organization.
+func (s *Service) Reject(timesheetID, reviewerID uuid.UUID, reviewerRole auth.Role, orgID uuid.UUID, reason string) error {
 	var ts Timesheet
 	if err := s.db.First(&ts, "id = ?", timesheetID).Error; err != nil {
 		return errors.New("timesheet not found")
@@ -132,6 +151,13 @@ func (s *Service) Reject(timesheetID, reviewerID uuid.UUID, reason string) error
 
 	if ts.Status != "submitted" {
 		return errors.New("only submitted timesheets can be rejected")
+	}
+
+	// Team-scope check: managers can only reject their own team members
+	if reviewerRole == auth.RoleManager {
+		if err := s.assertManagerOwnsEmployee(orgID, reviewerID, ts.UserID); err != nil {
+			return err
+		}
 	}
 
 	if err := s.db.Model(&ts).Updates(map[string]any{
@@ -144,5 +170,20 @@ func (s *Service) Reject(timesheetID, reviewerID uuid.UUID, reason string) error
 
 	sender := notifications.NewTelegramSender(s.db)
 	sender.NotifyTimesheetRejected(ts.OrgID, ts.UserID, reason)
+	return nil
+}
+
+// assertManagerOwnsEmployee verifies that employeeID belongs to at least one
+// team managed by managerID within the org.
+// Returns ErrForbidden if no such membership exists.
+func (s *Service) assertManagerOwnsEmployee(orgID, managerID, employeeID uuid.UUID) error {
+	var count int64
+	s.db.Table("team_members tm").
+		Joins("JOIN teams t ON t.id = tm.team_id").
+		Where("tm.user_id = ? AND t.manager_id = ? AND t.org_id = ?", employeeID, managerID, orgID).
+		Count(&count)
+	if count == 0 {
+		return common.ErrForbidden
+	}
 	return nil
 }
