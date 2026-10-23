@@ -9,9 +9,18 @@ import (
 	"github.com/habeshan-rems/backend/internal/auth"
 	"github.com/habeshan-rems/backend/internal/common"
 	"github.com/habeshan-rems/backend/internal/notifications"
-	"github.com/habeshan-rems/backend/internal/tasks"
 	"gorm.io/gorm"
 )
+
+// CalculateTotalHours returns the authoritative total hours for a timesheet period.
+// Total hours represent the verified attendance shift duration; task hours provide an
+// activity breakdown rather than being added on top.
+func CalculateTotalHours(attendanceHours float64) float64 {
+	if attendanceHours < 0 {
+		return 0
+	}
+	return attendanceHours
+}
 
 type Service struct {
 	db *gorm.DB
@@ -58,14 +67,9 @@ func (s *Service) generateForUser(orgID, userID uuid.UUID, periodStart, periodEn
 		Select("COALESCE(SUM(total_hours), 0)").
 		Scan(&attendanceHours)
 
-	var taskMinutes int
-	s.db.Model(&tasks.TaskTimeLog{}).
-		Where("org_id = ? AND user_id = ? AND started_at >= ? AND started_at < ?", orgID, userID, periodStart, periodEnd).
-		Where("sync_status = ? AND duration_minutes IS NOT NULL", tasks.SyncSyncedVerified).
-		Select("COALESCE(SUM(duration_minutes), 0)").
-		Scan(&taskMinutes)
-
-	totalHours := attendanceHours + float64(taskMinutes)/60.0
+	// Total hours represent the attendance shift; task time is an activity breakdown,
+	// not an additive duration component.
+	totalHours := CalculateTotalHours(attendanceHours)
 
 	ts := Timesheet{
 		UserID:      userID,
