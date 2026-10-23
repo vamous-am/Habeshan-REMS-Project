@@ -2,6 +2,7 @@ package timesheets
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -108,7 +109,9 @@ func (s *Service) Submit(timesheetID, callerID uuid.UUID) error {
 	}
 
 	sender := notifications.NewTelegramSender(s.db)
-	sender.NotifyTimesheetSubmitted(ts.OrgID, ts.UserID)
+	if err := sender.NotifyTimesheetSubmitted(ts.OrgID, ts.UserID); err != nil {
+		log.Printf("⚠️ timesheet %s submitted, but manager notification could not be routed: %v", ts.ID.ID, err)
+	}
 	return nil
 }
 
