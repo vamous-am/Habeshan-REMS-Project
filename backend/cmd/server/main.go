@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,23 +26,32 @@ import (
 )
 
 func main() {
-	// 1. Load environment variables
+	// 1. Root application context with cancellation on SIGINT/SIGTERM
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	// 2. Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Println("no .env file found, relying on environment variables")
 	}
 
-	// 2. Initialize Database connection
+	// 3. Initialize Database connection and run migrations
 	db := common.InitDB()
-	migrations.RunAll(db)
+	if err := migrations.RunAll(db); err != nil {
+		log.Fatalf("❌ migrations failed: %v", err)
+	}
 
-	// 3. Initialize Fiber App
+	// 4. Start background schedulers (timesheets & clock-in reminders)
+	timesheets.StartScheduler(ctx, db)
+	notifications.StartClockInReminderScheduler(ctx, db)
+
+	// 5. Initialize Fiber App
 	app := fiber.New(fiber.Config{
 		AppName: "Habeshan REMS API v1",
 	})
 	app.Use(func(c *fiber.Ctx) error {
 		start := time.Now()
 
-		// Go to next middleware or route handler
 		err := c.Next()
 
 		slog.Info("HTTP Request",
@@ -50,19 +63,19 @@ func main() {
 		return err
 	})
 
-	// 4. Configure CORS middleware (for Vite React frontend)
+	// 6. Configure CORS middleware (for Vite React frontend)
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "http://localhost:5173, http://localhost:3000",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-User-ID, X-Org-ID",
 		AllowMethods: "GET, POST, HEAD, PUT, DELETE, PATCH",
 	}))
 
-	// 5. Health Check Endpoint
+	// 7. Health Check Endpoint
 	app.Get("/api/v1/health", func(c *fiber.Ctx) error {
 		return common.OK(c, fiber.Map{"status": "ok"})
 	})
 
-	// 6.Register feature routes
+	// 8. Register feature routes
 	attendance.RegisterRoutes(app, db)
 	auth.RegisterRoutes(app, db)
 	dashboard.RegisterRoutes(app, db)
@@ -71,11 +84,25 @@ func main() {
 	timesheets.RegisterRoutes(app, db)
 	admin.RegisterRoutes(app, db)
 
-	// 7. Start HTTP Server
+	// 9. Start HTTP Server with graceful shutdown
 	port := getEnv("PORT", "8080")
-	log.Printf("🚀 Server listening on port :%s", port)
-	if err := app.Listen(":" + port); err != nil {
-		log.Fatalf("❌ Server failed to start: %v", err)
+	serverErr := make(chan error, 1)
+
+	go func() {
+		log.Printf("🚀 Server listening on port :%s", port)
+		if err := app.Listen(":" + port); err != nil && err != http.ErrServerClosed {
+			serverErr <- err
+		}
+	}()
+
+	select {
+	case err := <-serverErr:
+		log.Printf("❌ Server error: %v", err)
+	case <-ctx.Done():
+		log.Println("🛑 Shutting down server gracefully...")
+		if err := app.ShutdownWithTimeout(5 * time.Second); err != nil {
+			log.Printf("⚠️ Server shutdown error: %v", err)
+		}
 	}
 }
 

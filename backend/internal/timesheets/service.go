@@ -3,6 +3,7 @@ package timesheets
 import (
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -81,7 +82,14 @@ func (s *Service) generateForUser(orgID, userID uuid.UUID, periodStart, periodEn
 	}
 	ts.OrgID = orgID
 
-	return s.db.Create(&ts).Error
+	if err := s.db.Create(&ts).Error; err != nil {
+		// Treat unique constraint violation as idempotent success if two generation workers raced
+		if strings.Contains(strings.ToLower(err.Error()), "unique") || strings.Contains(err.Error(), "idx_timesheets_org_user_period") {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // Submit transitions a timesheet from draft/rejected → submitted.
