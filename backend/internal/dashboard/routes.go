@@ -11,7 +11,7 @@ import (
 func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	d := app.Group("/api/v1", middleware.JWTAuth())
 	d.Get("/dashboard/manager", GetManagerDashboardLive(db))
-	d.Get("/dashboard/leaderboard", GetLeaderboard)
+	d.Get("/dashboard/leaderboard", GetLeaderboard(db))
 	d.Get("/reports/attendance", AttendanceReport(db))
 	d.Get("/reports/tasks", TaskReport(db))
 	d.Get("/timesheets/export", timesheets.ExportCSV(db))

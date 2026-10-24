@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../../lib/api/client";
 import { Users, CheckCircle2, Clock, ShieldCheck, AlertCircle, RefreshCw } from "lucide-react";
+import Leaderboard from "./Leaderboard";
+
 
 interface DashboardData {
   team_attendance_today: { present: number; absent: number; total: number };
@@ -197,6 +199,10 @@ export default function ManagerDashboardLive() {
           })}
         </div>
       </div>
+
+      {/* Leaderboard — self-contained, has its own loading/error state */}
+      <Leaderboard />
     </div>
   );
 }
+
