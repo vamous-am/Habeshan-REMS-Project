@@ -34,6 +34,33 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let active = true;
+    api
+      .get<{ data: LeaderboardData }>("/dashboard/leaderboard")
+      .then((res) => {
+        if (active) {
+          setData(res.data?.data ?? res.data);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load leaderboard",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function load() {
     setLoading(true);
     setError(null);
@@ -51,10 +78,6 @@ export default function Leaderboard() {
         setLoading(false);
       });
   }
-
-  useEffect(() => {
-    load();
-  }, []);
 
   if (loading) {
     return (
