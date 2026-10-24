@@ -15,6 +15,7 @@ func RegisterRoutes(app *fiber.App, db *gorm.DB) {
 	adminGroup := app.Group("/api/v1/admin", middleware.JWTAuth(), middleware.RequireRole("admin"))
 
 	// User CRUD (FR-ADMIN-01)
+	adminGroup.Post("/users", h.CreateUser)
 	adminGroup.Get("/users", h.ListUsers)
 	adminGroup.Get("/users/:id", h.GetUser)
 	adminGroup.Patch("/users/:id", h.UpdateUser)

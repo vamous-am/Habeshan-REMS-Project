@@ -96,6 +96,42 @@ func (h *Handler) DeleteUser(c *fiber.Ctx) error {
 	return common.OK(c, fiber.Map{"deleted": true})
 }
 
+// CreateUser handles POST /api/v1/admin/users.
+//
+// The org_id is always sourced from the JWT — no caller-supplied org_id is read.
+// Role is checked at three independent layers: DTO struct tag, this handler, and
+// the service method, ensuring "admin" can never be set via this endpoint.
+func (h *Handler) CreateUser(c *fiber.Ctx) error {
+	orgID, err := orgIDFromCtx(c)
+	if err != nil {
+		return common.HandleError(c, common.ErrUnauthorized)
+	}
+
+	var req CreateUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return common.HandleError(c, common.ErrBadRequest)
+	}
+
+	// Validate required fields.
+	if req.Email == "" || req.FullName == "" || req.Password == "" || req.Role == "" {
+		return common.HandleError(c, common.ErrBadRequest)
+	}
+
+	// Explicit role guard at the HTTP boundary.
+	// The DTO tag and service layer also enforce this, but this check ensures
+	// a clear rejection before any hashing work is done.
+	if req.Role == "admin" {
+		return common.Fail(c, fiber.StatusForbidden, "admin role cannot be assigned via this endpoint; use the CLI seed-admin command")
+	}
+
+	user, err := h.svc.CreateUser(orgID, req)
+	if err != nil {
+		return common.HandleError(c, err)
+	}
+	return common.Created(c, user)
+}
+
+
 // ── Role assignment ──────────────────────────────────────────────────────────
 
 func (h *Handler) UpdateUserRole(c *fiber.Ctx) error {
