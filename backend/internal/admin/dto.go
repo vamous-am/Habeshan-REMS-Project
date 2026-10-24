@@ -12,6 +12,19 @@ type UpdateUserRoleRequest struct {
 	Role string `json:"role" validate:"required,oneof=admin manager employee"`
 }
 
+// CreateUserRequest is the request body for POST /admin/users.
+// org_id is intentionally absent — it is always taken from the JWT claim
+// so that a caller cannot create users in a foreign org.
+// role is restricted to "manager" or "employee" — admin promotion remains
+// CLI-only through the seed-admin command (see admin/service.go:PromoteAdmin).
+type CreateUserRequest struct {
+	Email    string `json:"email"     validate:"required,email"`
+	FullName string `json:"full_name" validate:"required,min=2,max=100"`
+	Password string `json:"password"  validate:"required,min=8"`
+	Role     string `json:"role"      validate:"required,oneof=manager employee"`
+	Phone    string `json:"phone,omitempty"`
+}
+
 // ── Teams ────
 
 type CreateTeamRequest struct {

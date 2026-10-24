@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/auth"
 	"github.com/habeshan-rems/backend/internal/common"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -90,6 +91,46 @@ func (s *Service) DeleteUser(orgID, userID uuid.UUID) error {
 	}
 	return nil
 }
+
+// CreateUser creates a new user in the authenticated admin's organization.
+//
+// Security constraints (FR-ADMIN-01, FR-AUTH-02):
+//   - org_id is always the admin's org from JWT — never caller-supplied.
+//   - Only "manager" and "employee" roles are accepted; "admin" is rejected
+//     with ErrBadRequest — admin promotion remains CLI-only.
+//   - Password is hashed with bcrypt cost 10 before storage.
+//   - Duplicate email within the org returns ErrConflict (DB unique index).
+//   - The returned DTO never contains PasswordHash.
+func (s *Service) CreateUser(orgID uuid.UUID, req CreateUserRequest) (auth.UserDTO, error) {
+	// Belt-and-suspenders role guard — the DTO tag already enforces this, but
+	// a direct service call should also be self-defending.
+	if auth.Role(req.Role) == auth.RoleAdmin {
+		return auth.UserDTO{}, common.ErrBadRequest
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 10) // cost >= 10, FR-AUTH-02
+	if err != nil {
+		return auth.UserDTO{}, common.ErrInternal
+	}
+
+	user := auth.User{
+		Email:        req.Email,
+		PasswordHash: string(hash),
+		FullName:     req.FullName,
+		Phone:        req.Phone,
+		Role:         auth.Role(req.Role),
+		Status:       auth.UserStatusActive,
+	}
+	user.OrgID = orgID
+
+	if err := s.db.Create(&user).Error; err != nil {
+		// The unique index idx_users_org_email (where deleted_at IS NULL)
+		// fires when the same email is registered again in the same org.
+		return auth.UserDTO{}, common.ErrConflict
+	}
+	return toUserDTO(user), nil
+}
+
 
 // ── Role assignment (FR-ADMIN-02) ──────────────────────────────────────────────
 
