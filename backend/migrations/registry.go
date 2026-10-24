@@ -23,6 +23,7 @@ func RunAll(db *gorm.DB) error {
         {"0009_dev4_notifications", Migrate0009Notifications},
         {"0010_dev4_telegram_subscribers", Migrate0010TelegramSubscribers},
         {"0011_dev6_task_time_logs_org_id", Migrate0011TaskTimeLogsOrgID},
+        {"0012_dev7_timesheets_unique_period", Migrate0012TimesheetsUniquePeriod},
         // 0100_dev5_tasks_seed intentionally excluded — run manually for local dev only
         // future migrations appended here
     }
