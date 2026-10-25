@@ -26,8 +26,7 @@ Built by a team of 4 developers Release 1.0 (MVP) showcase.
 - [Development Workflow](#development-workflow)
 - [Testing](#testing)
 - [Offline-First Design Notes](#offline-first-design-notes)
-- [Roadmap](#roadmap)
-- [Documentation](#documentation)
+- [Status](#status)
 - [License](#license)
 
 ---
@@ -43,7 +42,7 @@ That’s lost productivity for the company, and lost time the person will never 
 
 ## 🏠 The Solution
 
-A lot of that commuting isn’t actually necessary. Many roles — developers, analysts, and other knowledge workers  don’t need physical presence to do their job well.  
+A lot of that commuting isn’t actually necessary. Many roles — developers, analysts, and other knowledge workers don’t need physical presence to do their job well.  
 
 - Roles that genuinely require face‑to‑face presence (guards, secretaries, in‑person sales) stay office‑based.  
 - Everyone else gets the option to **work from home**, freeing up commute time for rest, exercise, family, or skill‑building.  
@@ -74,7 +73,6 @@ Habeshan REMS is built **offline‑first** from the ground up:
 
 The goal: **uninterrupted productivity in real‑world Ethiopian conditions**, not conditions assumed by tools built elsewhere.
 
-
 ## Core Features (Release 1.0 Scope)
 
 - **Authentication & RBAC** - email/password login, JWT-based sessions, three roles (Admin, Manager, Employee), password reset
@@ -85,19 +83,19 @@ The goal: **uninterrupted productivity in real‑world Ethiopian conditions**, n
 - **Manager dashboard** - team attendance, task progress, pending approvals at a glance
 - **Performance leaderboard** - lightweight, opt-out, named top-3 performer view
 - **Telegram notifications** - reminders, approvals, and rejections pushed via Telegram Bot
-- **Reporting & export** - attendance and task reports exportable to CSV, Excel, and PDF
-- **ETB-denominated org & billing display** - full payment processing deferred to Release 1.1
+- **Reporting & export** - attendance and task reports exportable to CSV
+- **ETB-denominated org & billing display**
 
 ## Out of Scope for MVP
 
-Explicitly deferred to protect the delivery timeline (see SRS Section 2.6 for full detail):
+Explicitly deferred to protect the delivery timeline:
 
 - Automated payroll calculation and disbursement
-- In-app payment processing (Chapa / Telebirr) — Release 1.1
+- In-app payment processing (Chapa / Telebirr)
 - Screenshot capture or continuous activity surveillance
 - AI-based productivity or sentiment analysis
 - Git/IDE integration for automatic proof-of-work
-- Native iOS/Android apps, MVP ships as an installable PWA only
+- Native iOS/Android apps
 - Real-time in-app chat (Telegram is the supported channel)
 - Email/SMS notification channels
 - Multi-level management hierarchies beyond Admin–Manager–Employee
@@ -110,7 +108,7 @@ Explicitly deferred to protect the delivery timeline (see SRS Section 2.6 for fu
 
 **Offline Storage**
 
-![IndexedDB](https://img.shields.io/badge/-IndexedDB-FF6F00?style=flat-square&logo=googlechrome&logoColor=white) ![Dexie.js](https://img.shields.io/badge/-Dexie.js-FFCA28?style=flat-square&logo=javascript&logoColor=black) ![AES--256](https://img.shields.io/badge/-AES--256%20Encrypted-4B0082?style=flat-square&logo=letsencrypt&logoColor=white)
+![IndexedDB](https://img.shields.io/badge/-IndexedDB-FF6F00?style=flat-square&logo=googlechrome&logoColor=white) ![Dexie.js](https://img.shields.io/badge/-Dexie.js-FFCA28?style=flat-square&logo=javascript&logoColor=black)
 
 **Backend**
 
@@ -128,7 +126,7 @@ Explicitly deferred to protect the delivery timeline (see SRS Section 2.6 for fu
 
 ![GitHub Actions](https://img.shields.io/badge/-GitHub%20Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)
 
-> The frontend is a client-rendered SPA, not server-rendered, because it needs to render fully offline. Go/Fiber's concurrency model handles offline-batch sync and scheduled jobs comfortably on minimal server resources. Full rationale for every stack constraint is in SRS Section 2.5.
+> The frontend is a client-rendered SPA, not server-rendered, because it needs to render fully offline. Go/Fiber's concurrency model handles offline-batch sync and scheduled jobs comfortably on minimal server resources.
 
 ## System Architecture
 
@@ -136,7 +134,7 @@ Habeshan REMS is a three-tier, offline-first architecture:
 
 ```
 ┌─────────────────────────────┐
-│   Client Tier (PWA)         │
+│   Client Tier (SPA)         │
 │   React SPA + Dexie.js      │
 │   offline queue (IndexedDB) │
 └──────────┬───────────────────┘
@@ -153,7 +151,7 @@ Habeshan REMS is a three-tier, offline-first architecture:
 └───────────────────────────────┘
 ```
 
-Clock-in/clock-out actions are captured locally first, queued in an encrypted IndexedDB store if offline, and synced automatically once connectivity returns. The server independently re-verifies every synced record's device hash and timestamp before accepting it, the client is never trusted as the source of truth for time.
+Clock-in/clock-out actions are captured locally first, queued in an IndexedDB store if offline, and synced automatically once connectivity returns. The server independently re-verifies every synced record's device hash and timestamp before accepting it, the client is never trusted as the source of truth for time.
 
 ## Database Schema
 
@@ -173,13 +171,11 @@ Clock-in/clock-out actions are captured locally first, queued in an encrypted In
 | `notifications` | In-app notification log, persisted independent of Telegram delivery |
 | `telegram_subscribers` | Links a user account to a Telegram chat |
 
-Full column-level definitions, constraints, and the ER diagram live in the project SRS (Section 3.4).
-
 > **Note on `users.email`:** uniqueness is scoped per organization, not global — `UNIQUE (org_id, email) WHERE deleted_at IS NULL`. This allows the same email to hold separate accounts under different organizations, and frees up for reuse once an account is soft-deleted.
 
 ### Core state machines
 
-Three formally defined state machines govern the system (full transition tables in SRS Section 3.5):
+Three formally defined state machines govern the system:
 
 1. **Attendance sync** — `OFFLINE_LOGGED → PENDING_SYNC → SYNCED_VERIFIED` or `REJECTED_TAMPERED`
 2. **Task status** — `To Do → In Progress ⇄ Paused / Blocked → Completed`
@@ -250,6 +246,8 @@ Habeshan-REMS-Project/
 │       └── ci.yml                    # Lint + test on every PR
 ├── backend/
 │   ├── cmd/
+│   │   ├── migrate/
+│   │   ├── seed-admin/
 │   │   └── server/
 │   │       └── main.go
 │   ├── internal/
@@ -275,7 +273,10 @@ Habeshan-REMS-Project/
 │   │   ├── 0007_dev3_task_time_logs.go
 │   │   ├── 0008_dev4_timesheets.go
 │   │   ├── 0009_dev4_notifications.go
-│   │   └── 0010_dev4_telegram_subscribers.go
+│   │   ├── 0010_dev4_telegram_subscribers.go
+│   │   ├── 0011_dev6_task_time_logs_org_id.go
+│   │   ├── 0012_dev7_timesheets_unique_period.go
+│   │   └── 0100_dev5_tasks_seed.go
 │   ├── go.mod
 │   └── go.sum
 ├── frontend/
@@ -300,9 +301,6 @@ Habeshan-REMS-Project/
 │   ├── types/                         # Shared TS types / Go structs
 │   ├── api/                           # Request/response JSON shapes
 │   └── db-schema.md                   # Frozen cross-slice table shapes (FKs, field lists)
-├── docs/
-│   ├── Habeshan_REMS_SRS_v2_0.pdf
-│   └── team-working-agreement.html
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -328,7 +326,7 @@ All endpoints are versioned under `/api/v1`, authenticated via `Authorization: B
 | Admin | `POST /admin/users`, `POST /admin/teams` |
 | Notifications | `POST /notifications/telegram/link`, `POST /telegram/webhook` |
 
-Full request/response shapes, error codes, and the complete endpoint catalog live in `/contracts` and SRS Appendix B.
+Full request/response shapes, error codes, and the complete endpoint catalog live in `/contracts`.
 
 ## Team & Ownership
 
@@ -341,7 +339,7 @@ Four developers, four vertical slices — each owns the full stack (database + G
 | Dev 3 | Tasks & Work Timer | `tasks`, `task_assignments`, `task_time_logs` |
 | Dev 4 | Timesheets, Dashboard, Reports & Notifications | `timesheets`, `notifications`, `telegram_subscribers` |
 
-Dev 1's auth/RBAC middleware is a hard dependency for the other three slices and is built first. Dev 4's timesheet aggregation depends on stable data contracts from Dev 2 and Dev 3, published to `/contracts` before that work begins. Full ownership detail, task breakdowns, and working rules live in `/docs`.
+Dev 1's auth/RBAC middleware is a hard dependency for the other three slices and is built first. Dev 4's timesheet aggregation depends on stable data contracts from Dev 2 and Dev 3, published to `/contracts` before that work begins.
 
 ## Development Workflow
 
@@ -354,7 +352,7 @@ Dev 1's auth/RBAC middleware is a hard dependency for the other three slices and
 **Definition of Done** for any task:
 1. Code is written and works
 2. Basic error handling is present
-3. Matches the corresponding FR/NFR in the SRS
+3. Matches functional and non-functional requirements
 4. PR is reviewed and merged
 5. Tracked task is marked complete
 
@@ -375,35 +373,15 @@ CI runs lint and the test suite on every pull request via GitHub Actions.
 
 A few implementation details worth knowing before touching the attendance or task-timer code:
 
-- Offline records are queued in Dexie.js (IndexedDB), encrypted at rest with AES-256, keys derived per-session and never persisted in plaintext.
+- Offline records are queued in Dexie.js (IndexedDB) locally with tamper-evident cryptographic hashes.
 - Every queued record carries a client-computed device hash; the server independently re-verifies it on sync — the client's word alone is never trusted.
 - Sync is idempotent via a client-generated `record_uuid`, so a retried batch never double-counts.
 - The app requests persistent storage (`navigator.storage.persist()`) to reduce the risk of browser eviction under storage pressure, particularly on iOS Safari, and offers a manual export of queued records as a fallback.
 - A record that fails hash/timestamp verification is marked `REJECTED_TAMPERED`, excluded from attendance totals, and surfaced to the employee's Manager for review — it is never silently dropped.
 
-## Roadmap
-
-**Release 1.1 (post-MVP validation, pre-commercial launch):**
-- Per-seat ETB subscription billing (Basic/Pro/Enterprise)
-- Chapa and Telebirr payment integration
-- Self-service plan management and invoicing
-
-**Release 2.0+:**
-- Automated payroll disbursement
-- Client portal for international outsourcing clients
-- Git/IDE proof-of-work integration
-- Native mobile apps
-- AI-assisted productivity analytics
-- Hardened multi-org self-serve growth
-
-## Documentation
-
-- `docs/Habeshan_REMS_SRS_v2_0.pdf`  full Software Requirements Specification (IEEE 830-1998), functional/non-functional requirements, database schema, state machines, API surface, and traceability matrix
-- `/contracts` — live source of truth for cross-slice API and data contracts
-
-
 ## Status
-🚧 In active development.
+
+✅ Core MVP implementation complete.
 
 | Name             | ID           | Class Room |
 |------------------|--------------|------------|
@@ -411,4 +389,3 @@ A few implementation details worth knowing before touching the attendance or tas
 | Amanuel Habtamu  | CTC-3561-26  | ROOM 1     |
 | Abdurezak Anwar  | CTC-2844-26  | ROOM 1     |
 | Aymen Muhammed   | CTC-1544-26  | ROOM 1     |
-
