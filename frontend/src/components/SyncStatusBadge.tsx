@@ -6,6 +6,7 @@ export const SyncStatusBadge: React.FC = () => {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [tamperedCount, setTamperedCount] = useState<number>(0);
+  const [decryptErrorCount, setDecryptErrorCount] = useState<number>(0);
 
   const updateCounts = useCallback(async () => {
     try {
@@ -17,8 +18,12 @@ export const SyncStatusBadge: React.FC = () => {
         .where('sync_status')
         .equals('REJECTED_TAMPERED')
         .count();
+      const decryptErrors = await db.offlineLogs
+        .filter((log) => !!log.decrypt_error)
+        .count();
       setPendingCount(pending);
       setTamperedCount(tampered);
+      setDecryptErrorCount(decryptErrors);
     } catch (e) {
       console.error('Error reading offline log status counts:', e);
     }
@@ -75,7 +80,16 @@ export const SyncStatusBadge: React.FC = () => {
         </span>
       )}
 
-      {pendingCount === 0 && tamperedCount === 0 && isOnline && (
+      {decryptErrorCount > 0 && (
+        <span
+          className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+          title="Offline records that could not be decrypted with device key"
+        >
+          🔒 {decryptErrorCount} Decrypt Issue
+        </span>
+      )}
+
+      {pendingCount === 0 && tamperedCount === 0 && decryptErrorCount === 0 && isOnline && (
         <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
           All Logged Data Synced
         </span>
