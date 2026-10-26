@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint .",
+    "test:crypto": "node --test src/lib/offline-db/crypto.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -42,7 +43,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.67.0",
-    "vite": "^5.2.11"
+    "vite": "^5.2.11",
+    "vite-plugin-pwa": "^0.20.5"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "4.62.5"
