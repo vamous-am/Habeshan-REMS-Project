@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="128" fill="#18181b"/>
+  <circle cx="256" cy="256" r="192" fill="#27272a" stroke="#d97706" stroke-width="16"/>
+  <!-- Stylized H and clock hand in Ochre -->
+  <path d="M192 160 V352" stroke="#d97706" stroke-width="28" stroke-linecap="round"/>
+  <path d="M320 160 V352" stroke="#d97706" stroke-width="28" stroke-linecap="round"/>
+  <path d="M192 256 H320" stroke="#fbbf24" stroke-width="24" stroke-linecap="round"/>
+  <!-- Clock ticks -->
+  <circle cx="256" cy="112" r="10" fill="#fbbf24"/>
+  <circle cx="256" cy="400" r="10" fill="#fbbf24"/>
+  <circle cx="112" cy="256" r="10" fill="#fbbf24"/>
+  <circle cx="400" cy="256" r="10" fill="#fbbf24"/>
+</svg>
