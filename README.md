@@ -25,6 +25,7 @@ Built by a team of 4 developers Release 1.0 (MVP) showcase.
 - [Team & Ownership](#team--ownership)
 - [Development Workflow](#development-workflow)
 - [Testing](#testing)
+- [Background Schedulers](#background-schedulers)
 - [Offline-First Design Notes](#offline-first-design-notes)
 - [Status](#status)
 - [License](#license)
@@ -187,8 +188,17 @@ Three formally defined state machines govern the system:
 
 - Go 1.22+
 - Node.js 18+ and npm
-- A PostgreSQL 15 instance (local or Aiven)
+- Docker and Docker Compose (for local PostgreSQL), **or** a PostgreSQL 15 instance (local or Aiven)
 - A Telegram bot token (create one via [@BotFather](https://t.me/BotFather))
+
+### Local database (Docker)
+
+The fastest way to spin up a local PostgreSQL instance is with the included Compose file:
+
+```bash
+# from the repo root — set POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, DB_PORT in a .env at the root
+docker compose up -d
+```
 
 ### Backend setup
 
@@ -197,6 +207,7 @@ cd backend
 cp .env.example .env        # fill in your local values — see Environment Variables below
 go mod download
 go run ./cmd/migrate         # run GORM migrations
+go run ./cmd/seed-admin      # (optional) seed an initial Admin user
 go run ./cmd/server           # starts the API on the configured PORT
 ```
 
@@ -246,23 +257,23 @@ Habeshan-REMS-Project/
 │       └── ci.yml                    # Lint + test on every PR
 ├── backend/
 │   ├── cmd/
-│   │   ├── migrate/
-│   │   ├── seed-admin/
+│   │   ├── migrate/                  # Run GORM auto-migrations
+│   │   ├── seed-admin/               # Seed an initial Admin user
 │   │   └── server/
-│   │       └── main.go
+│   │       └── main.go               # Entry point; registers all routes & schedulers
 │   ├── internal/
 │   │   ├── auth/                     # Dev 1 — includes auth/models.go
 │   │   ├── admin/                    # Dev 1
 │   │   ├── attendance/               # Dev 2 — includes attendance/models.go
-│   │   ├── tasks/                    # Dev 3 — includes tasks/models.go
-│   │   ├── timesheets/               # Dev 4 — includes timesheets/models.go
-│   │   ├── dashboard/                # Dev 4
-│   │   ├── notifications/            # Dev 4 — includes notifications/models.go
+│   │   ├── tasks/                    # Dev 3 — includes models, service splits (status, timer, assignments, aggregates)
+│   │   ├── timesheets/               # Dev 4 — includes scheduler.go (auto-generation) and export.go (CSV)
+│   │   ├── dashboard/                # Dev 4 — live dashboard + attendance/task reports
+│   │   ├── notifications/            # Dev 4 — includes reminder.go (daily 9:30 AM clock-in reminder scheduler)
 │   │   ├── middleware/               # Dev 1 (shared) — RBAC, JWT validation
 │   │   └── common/
-│   │       ├── base.go               # BaseModel: ID, CreatedAt, UpdatedAt, OrgID
-│   │       ├── response.go           # Shared success/error envelope
-│   │       └── errors.go             # Shared error types/helpers
+│   │       ├── base.go               # BaseModel: ID, TenantScoped, Timestamps, SoftDeletable
+│   │       ├── response.go           # Shared success/error envelope + sentinel errors
+│   │       └── db.go                 # Database connection helper
 │   ├── migrations/
 │   │   ├── 0001_dev1_organizations.go
 │   │   ├── 0002_dev1_users.go
@@ -279,28 +290,36 @@ Habeshan-REMS-Project/
 │   │   └── 0100_dev5_tasks_seed.go
 │   ├── go.mod
 │   └── go.sum
-├── frontend/
+├── frontend/                         # Standalone React SPA (development entry point)
 │   ├── src/
-│   │   ├── components/                # Shared UI shell (buttons, layout, nav)
+│   │   ├── components/               # Shared UI shell: AppLayout, Navbar, Table, Toast, SyncStatusBadge, etc.
 │   │   ├── features/
-│   │   │   ├── auth/                  # Dev 1
-│   │   │   ├── admin/                 # Dev 1
-│   │   │   ├── attendance/            # Dev 2
-│   │   │   ├── tasks/                 # Dev 3
-│   │   │   ├── timesheets/            # Dev 4
-│   │   │   ├── dashboard/             # Dev 4
-│   │   │   └── notifications/         # Dev 4
+│   │   │   ├── auth/                 # Login, Register, PasswordReset — Dev 1
+│   │   │   ├── admin/                # AdminLayout, UserManagement, TeamManagement, OrganizationSettings — Dev 1
+│   │   │   ├── attendance/           # ClockWidget, ManagerReviewQueue, offlineService, syncWorker — Dev 2
+│   │   │   ├── tasks/                # TaskListPage, TaskDetailPage, CreateTaskForm, TimerControls — Dev 3
+│   │   │   ├── timesheets/           # TimesheetList, ApprovalQueue — Dev 4
+│   │   │   ├── dashboard/            # ManagerDashboard, ManagerDashboardLive, Leaderboard — Dev 4
+│   │   │   └── notifications/        # TelegramLinking — Dev 4
 │   │   ├── lib/
-│   │   │   ├── api/                   # Shared HTTP client, interceptors
-│   │   │   └── offline-db/            # Dev 2 — Dexie.js/IndexedDB
-│   │   ├── routes/                    # Dev 1 owns ProtectedRoute / role guards
+│   │   │   ├── api/                  # Shared HTTP client (client.ts), authClient, adminClient
+│   │   │   └── offline-db/           # Dev 2 — Dexie.js/IndexedDB: db.ts, crypto.ts, backup.ts, storagePersist.ts
+│   │   ├── routes/                   # ProtectedRoute + role guards — Dev 1
 │   │   └── App.tsx
 │   ├── package.json
 │   └── tsconfig.json
+├── vite-monorepo/                    # Turborepo monorepo (shared UI component library)
+│   ├── apps/
+│   │   └── web/                      # Monorepo web app entry point
+│   ├── packages/
+│   │   └── ui/                       # @workspace/ui — shared Shadcn/UI component package
+│   ├── turbo.json
+│   └── package.json
 ├── contracts/
-│   ├── types/                         # Shared TS types / Go structs
-│   ├── api/                           # Request/response JSON shapes
-│   └── db-schema.md                   # Frozen cross-slice table shapes (FKs, field lists)
+│   ├── types/                        # Shared TS types / Go structs
+│   ├── api/                          # Request/response JSON shapes
+│   └── db-schema.md                  # Frozen cross-slice table shapes (FKs, field lists)
+├── docker-compose.yml                # Local PostgreSQL via Docker
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -318,11 +337,13 @@ All endpoints are versioned under `/api/v1`, authenticated via `Authorization: B
 
 | Area | Example endpoints |
 |---|---|
+| Health | `GET /health` *(public)* |
 | Auth | `POST /auth/login`, `POST /auth/register`, `POST /auth/reset-password` |
 | Attendance | `POST /attendance/clock-in`, `POST /attendance/sync`, `GET /attendance/me` |
 | Tasks | `POST /tasks`, `PATCH /tasks/:id/status`, `POST /tasks/:id/timer/start` |
-| Timesheets | `PUT /timesheets/:id/submit`, `PUT /timesheets/:id/approve` |
-| Dashboard/Reports | `GET /dashboard/manager`, `GET /reports/attendance` |
+| Timesheets | `PUT /timesheets/:id/submit`, `PUT /timesheets/:id/approve`, `GET /timesheets/export?format=csv` |
+| Dashboard | `GET /dashboard/manager` |
+| Reports | `GET /reports/attendance`, `GET /reports/tasks` |
 | Admin | `POST /admin/users`, `POST /admin/teams` |
 | Notifications | `POST /notifications/telegram/link`, `POST /telegram/webhook` |
 
@@ -368,6 +389,17 @@ Each developer owns the test suite for their slice's highest-risk path:
 | Abdurezak | Timesheet aggregation accuracy against known attendance + task-timer fixtures |
 
 CI runs lint and the test suite on every pull request via GitHub Actions.
+
+## Background Schedulers
+
+Two background goroutines start automatically with the server and respect context cancellation for graceful shutdown:
+
+| Scheduler | Trigger | What it does |
+|---|---|---|
+| **Timesheet auto-generation** | End of each ISO week (Monday 00:00 Addis Ababa time) | Generates draft timesheets for every active user across all active organizations, based on that week's attendance and task-timer data |
+| **Clock-in reminder** | Daily at 09:30 AM Addis Ababa time (UTC+3) | Sends a Telegram reminder to every active user who hasn't clocked in yet that day and hasn't already received a reminder for that day |
+
+Both schedulers are scoped to active, non-suspended organizations and include panic recovery so a failure for one org never takes down the loop.
 
 ## Offline-First Design Notes
 
