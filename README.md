@@ -362,6 +362,7 @@ Full request/response shapes, error codes, and the complete endpoint catalog liv
 |------------------|--------------|------------|
 | Amanuel Musa     | CTC-1441-26  | ROOM 1     |
 | Abdurezak Anwar  | CTC-2844-26  | ROOM 1     |
+| Amanuel Habtamu  | CTC-3561-26  | ROOM 1     |
 
 Two developers, four vertical slices. Each slice covers the full stack (database + Go API + React screens) for its area, not just one layer:
 

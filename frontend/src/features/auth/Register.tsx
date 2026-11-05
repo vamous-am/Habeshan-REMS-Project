@@ -3,15 +3,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
-import { ErrorState } from "../../components/ErrorState";
-import { Input } from "../../components/Input";
 import {
   extractAuthErrorMessage,
   persistAuthSession,
   register,
 } from "../../lib/api/authClient";
+import { AuthField, AuthFieldGroup } from "./AuthField";
+import { AuthButton, AuthError, AuthLayout } from "./AuthLayout";
 
 const registerSchema = z.object({
   org_name: z.string().min(2, "Organization name must be at least 2 characters"),
@@ -60,68 +58,74 @@ export default function Register() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-paper p-4">
-      <Card
-        title="Create account"
-        subtitle="Register a new organization and employee account"
-      >
-        {apiError && (
-          <div className="mb-4">
-            <ErrorState message={apiError} />
-          </div>
-        )}
+    <AuthLayout
+      title="Create your workspace"
+      subtitle="Register your organization and your account to get started."
+      footer={
+        <p>
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="font-semibold text-ochre-light underline-offset-2 hover:underline"
+          >
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      {apiError && <AuthError message={apiError} />}
 
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={form.handleSubmit(handleSubmit)}
-          noValidate
-        >
-          <Input
-            label="Organization name"
+      <form
+        className="flex flex-col gap-5"
+        onSubmit={form.handleSubmit(handleSubmit)}
+        noValidate
+      >
+        <AuthFieldGroup>
+          <AuthField
+            label="Organization"
             autoComplete="organization"
+            placeholder="Agency name"
             error={form.formState.errors.org_name?.message}
             {...form.register("org_name")}
           />
-          <Input
+          <AuthField
             label="Full name"
             autoComplete="name"
+            placeholder="Your name"
             error={form.formState.errors.full_name?.message}
             {...form.register("full_name")}
           />
-          <Input
+          <AuthField
             label="Email"
             type="email"
             autoComplete="email"
+            placeholder="name@example.com"
             error={form.formState.errors.email?.message}
             {...form.register("email")}
           />
-          <Input
+          <AuthField
             label="Password"
             type="password"
             autoComplete="new-password"
+            placeholder="Password"
+            passwordToggle
             hint="At least 8 characters"
             error={form.formState.errors.password?.message}
             {...form.register("password")}
           />
-          <Input
-            label="Phone (optional)"
+          <AuthField
+            label="Phone"
             type="tel"
             autoComplete="tel"
+            placeholder="Optional"
             error={form.formState.errors.phone?.message}
             {...form.register("phone")}
           />
-          <Button type="submit" loading={loading} className="w-full">
-            Create account
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-ink500">
-          Already have an account?{" "}
-          <Link to="/login" className="text-ink underline underline-offset-2">
-            Sign in
-          </Link>
-        </p>
-      </Card>
-    </div>
+        </AuthFieldGroup>
+        <AuthButton type="submit" loading={loading} className="w-full">
+          Create account
+        </AuthButton>
+      </form>
+    </AuthLayout>
   );
 }
