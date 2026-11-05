@@ -3,10 +3,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
-import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
-import { ErrorState } from "../../components/ErrorState";
-import { Input } from "../../components/Input";
+import { AuthField, AuthFieldGroup } from "./AuthField";
+import { AuthButton, AuthError, AuthLayout } from "./AuthLayout";
 import { useToast } from "../../components/useToast";
 import {
   extractAuthErrorMessage,
@@ -138,104 +136,130 @@ export default function PasswordReset() {
 
   if (mode === "reset") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-paper p-4">
-        <Card title="Reset password" subtitle="Enter your reset token and new password">
-          {apiError && (
-            <div className="mb-4">
-              <ErrorState message={apiError} />
-            </div>
-          )}
+      <AuthLayout
+        title="Reset password"
+        subtitle="Enter your reset token and new password"
+        footer={
+          <p>
+            <Link
+              to="/login"
+              className="text-ochre-light underline-offset-2 hover:underline"
+            >
+              Back to sign in
+            </Link>
+          </p>
+        }
+      >
+        {apiError && <AuthError message={apiError} />}
 
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={resetForm.handleSubmit(handleResetSubmit)}
-            noValidate
-          >
-            <Input
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={resetForm.handleSubmit(handleResetSubmit)}
+          noValidate
+        >
+          <AuthFieldGroup>
+            <AuthField
               label="Reset token"
               autoComplete="off"
+              placeholder="Reset token"
               error={resetForm.formState.errors.reset_token?.message}
               {...resetForm.register("reset_token")}
             />
-            <Input
+            <AuthField
               label="New password"
               type="password"
               autoComplete="new-password"
+              placeholder="New password"
+              passwordToggle
               hint="At least 8 characters"
               error={resetForm.formState.errors.new_password?.message}
               {...resetForm.register("new_password")}
             />
-            <Input
-              label="Confirm password"
+            <AuthField
+              label="Confirm"
               type="password"
               autoComplete="new-password"
+              placeholder="Confirm password"
+              passwordToggle
               error={resetForm.formState.errors.confirm_password?.message}
               {...resetForm.register("confirm_password")}
             />
-            <Button type="submit" loading={loading} className="w-full">
-              Reset password
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-ink500">
-            <Link to="/login" className="text-ink underline underline-offset-2">
-              Back to sign in
-            </Link>
-          </p>
-        </Card>
-      </div>
+          </AuthFieldGroup>
+          <AuthButton type="submit" loading={loading} className="w-full">
+            Reset password
+          </AuthButton>
+        </form>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-paper p-4">
-      <Card
-        title="Forgot password"
-        subtitle={
-          forgotStep === "email"
-            ? "Enter your email to receive a reset token"
-            : "Choose your organization"
-        }
-      >
-        {apiError && (
-          <div className="mb-4">
-            <ErrorState message={apiError} />
-          </div>
-        )}
+    <AuthLayout
+      title="Forgot password"
+      subtitle={
+        forgotStep === "email"
+          ? "Enter your email to receive a reset token"
+          : "Choose your organization"
+      }
+      footer={
+        <>
+          <p>
+            Remember your password?{" "}
+            <Link
+              to="/login"
+              className="font-semibold text-ochre-light underline-offset-2 hover:underline"
+            >
+              Sign in
+            </Link>
+          </p>
+          <p className="mt-2">
+            <Link
+              to="/reset-password"
+              className="text-ochre-light underline-offset-2 hover:underline"
+            >
+              Already have a token?
+            </Link>
+          </p>
+        </>
+      }
+    >
+      {apiError && <AuthError message={apiError} />}
 
-        {forgotStep === "email" && (
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={forgotForm.handleSubmit(handleForgotEmailSubmit)}
-            noValidate
-          >
-            <Input
+      {forgotStep === "email" && (
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={forgotForm.handleSubmit(handleForgotEmailSubmit)}
+          noValidate
+        >
+          <AuthFieldGroup>
+            <AuthField
               label="Email"
               type="email"
               autoComplete="email"
+              placeholder="you@agency.et"
               error={forgotForm.formState.errors.email?.message}
               {...forgotForm.register("email")}
             />
-            <Button type="submit" loading={loading} className="w-full">
-              Send reset token
-            </Button>
-          </form>
-        )}
+          </AuthFieldGroup>
+          <AuthButton type="submit" loading={loading} className="w-full">
+            Send reset token
+          </AuthButton>
+        </form>
+      )}
 
-        {forgotStep === "org" && (
-          <div className="flex flex-col gap-4">
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm font-medium text-ink">
-                Organization
-              </legend>
+      {forgotStep === "org" && (
+        <div className="flex flex-col gap-5">
+          <fieldset>
+            <legend className="sr-only">Organization</legend>
+            <AuthFieldGroup>
               {orgs.map((org) => (
                 <label
                   key={org.org_id}
                   className={[
-                    "flex cursor-pointer items-center gap-3 rounded border px-3 py-2",
+                    "flex cursor-pointer items-center gap-3 px-4 py-3 sm:px-5",
                     selectedOrgId === org.org_id
-                      ? "border-ink bg-paper-dim"
-                      : "border-ink/20",
+                      ? "bg-ochre/10"
+                      : "hover:bg-white/[0.03]",
                   ].join(" ")}
                 >
                   <input
@@ -244,50 +268,45 @@ export default function PasswordReset() {
                     value={org.org_id}
                     checked={selectedOrgId === org.org_id}
                     onChange={() => setSelectedOrgId(org.org_id)}
-                    className="accent-ink"
+                    className="accent-ochre"
                   />
-                  <span className="text-sm text-ink">{org.org_name}</span>
+                  <span
+                    className={[
+                      "text-base",
+                      selectedOrgId === org.org_id
+                        ? "font-medium text-paper"
+                        : "text-auth-muted",
+                    ].join(" ")}
+                  >
+                    {org.org_name}
+                  </span>
                 </label>
               ))}
-            </fieldset>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setForgotStep("email");
-                  setApiError(null);
-                }}
-                className="flex-1"
-              >
-                Back
-              </Button>
-              <Button
-                type="button"
-                loading={loading}
-                onClick={handleOrgForgotSubmit}
-                className="flex-1"
-              >
-                Send reset token
-              </Button>
-            </div>
+            </AuthFieldGroup>
+          </fieldset>
+          <div className="flex gap-3">
+            <AuthButton
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setForgotStep("email");
+                setApiError(null);
+              }}
+              className="flex-1"
+            >
+              Back
+            </AuthButton>
+            <AuthButton
+              type="button"
+              loading={loading}
+              onClick={handleOrgForgotSubmit}
+              className="flex-1"
+            >
+              Send reset token
+            </AuthButton>
           </div>
-        )}
-
-        <p className="mt-6 text-center text-sm text-ink500">
-          Remember your password?{" "}
-          <Link to="/login" className="text-ink underline underline-offset-2">
-            Sign in
-          </Link>
-          {" · "}
-          <Link
-            to="/reset-password"
-            className="text-ink underline underline-offset-2"
-          >
-            Already have a token?
-          </Link>
-        </p>
-      </Card>
-    </div>
+        </div>
+      )}
+    </AuthLayout>
   );
 }

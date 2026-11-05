@@ -29,6 +29,13 @@
   --color-ink900: #12161c;
   --color-ink500: #5c6470;
 
+  /* Dark auth screens (login, register, password reset) only. */
+  --color-auth-bg: #0c131a;
+  --color-auth-panel: #16222e;
+  --color-auth-muted: #93a5b5;
+  --color-auth-faint: #71879a;
+  --color-auth-error: #ffa79d;
+
   --color-status-verified: #1f7a4d;
   --color-status-pending: #c98a2b;
   --color-status-rejected: #b23a2e;
