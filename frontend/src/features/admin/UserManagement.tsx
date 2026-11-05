@@ -3,9 +3,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
 import { ErrorState } from "../../components/ErrorState";
-import { Input } from "../../components/Input";
+import {
+  FormFieldGroup,
+  FormNote,
+  GroupedFormButton,
+  GroupedFormPanel,
+  GroupedInputField,
+  GroupedSelectField,
+} from "../../components/GroupedForm";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
   userRoleVariant,
@@ -299,56 +305,63 @@ export default function UserManagement() {
 
       {apiError && <ErrorState message={apiError} />}
 
-      <Card
+      <GroupedFormPanel
         title="Add user"
         subtitle="Create a manager or employee account for this organization."
-        className="max-w-lg"
       >
         <form
-          className="flex flex-col gap-4"
           onSubmit={form.handleSubmit(handleCreateUser)}
           noValidate
         >
-          <Input
-            label="Full name"
-            autoComplete="name"
-            error={form.formState.errors.full_name?.message}
-            {...form.register("full_name")}
-          />
-          <Input
-            label="Email"
-            type="email"
-            autoComplete="email"
-            error={form.formState.errors.email?.message}
-            {...form.register("email")}
-          />
-          <Input
-            label="Password"
-            type="password"
-            autoComplete="new-password"
-            hint="At least 8 characters"
-            error={form.formState.errors.password?.message}
-            {...form.register("password")}
-          />
-          <Select
-            label="Role"
-            options={CREATE_ROLE_OPTIONS}
-            error={form.formState.errors.role?.message}
-            {...form.register("role")}
-          />
-          <Input
-            label="Phone"
-            type="tel"
-            autoComplete="tel"
-            placeholder="09XXXXXXXX (optional)"
-            error={form.formState.errors.phone?.message}
-            {...form.register("phone")}
-          />
-          <Button type="submit" loading={form.formState.isSubmitting}>
+          <FormFieldGroup>
+            <GroupedInputField
+              label="Full name"
+              autoComplete="name"
+              error={form.formState.errors.full_name?.message}
+              {...form.register("full_name")}
+            />
+            <GroupedInputField
+              label="Email"
+              type="email"
+              autoComplete="email"
+              error={form.formState.errors.email?.message}
+              {...form.register("email")}
+            />
+            <GroupedInputField
+              label="Password"
+              type="password"
+              autoComplete="new-password"
+              hint="At least 8 characters"
+              error={form.formState.errors.password?.message}
+              {...form.register("password")}
+            />
+            <GroupedSelectField
+              label="Role"
+              options={CREATE_ROLE_OPTIONS}
+              error={form.formState.errors.role?.message}
+              {...form.register("role")}
+            />
+            <GroupedInputField
+              label="Phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="09XXXXXXXX (optional)"
+              error={form.formState.errors.phone?.message}
+              {...form.register("phone")}
+            />
+          </FormFieldGroup>
+          <FormNote title="Admin is not offered here.">
+            The first admin still comes from the CLI seed-admin command.
+          </FormNote>
+          <GroupedFormButton
+            type="submit"
+            loading={form.formState.isSubmitting}
+            className="mt-5 w-full"
+          >
             Add user
-          </Button>
+          </GroupedFormButton>
         </form>
-      </Card>
+      </GroupedFormPanel>
 
       {loading ? (
         <p className="text-sm text-ink500">Loading users…</p>
