@@ -12,7 +12,7 @@ Originally built by a team of 4 developers in Phase 1. Release 1.0 (MVP) showcas
 
 ## Demo Video
 
-🎬 _The link to the 5-minute demo video with voiceover will be added here._
+🎬 [Watch the 5-minute demo video with voiceover](https://www.loom.com/share/00d8d3475b7f4e6c8a4217cd1e90fa25)
 
 ---
 
