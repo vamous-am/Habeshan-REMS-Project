@@ -10,8 +10,15 @@ Built by a team of 4 developers Release 1.0 (MVP) showcase.
 
 ---
 
+## Demo Video
+
+🎬 _The link to the 5-minute demo video with voiceover will be added here._
+
+---
+
 ## Table of Contents
 
+- [Demo Video](#demo-video)
 - [Why This Exists](#why-this-exists)
 - [Core Features (Release 1.0 Scope)](#core-features-release-10-scope)
 - [Out of Scope for MVP](#out-of-scope-for-mvp)
@@ -350,6 +357,13 @@ All endpoints are versioned under `/api/v1`, authenticated via `Authorization: B
 Full request/response shapes, error codes, and the complete endpoint catalog live in `/contracts`.
 
 ## Team & Ownership
+
+| Name             | CTC ID       | Class Room |
+|------------------|--------------|------------|
+| Amanuel Musa     | CTC-1441-26  | ROOM 1     |
+| Amanuel Habtamu  | CTC-3561-26  | ROOM 1     |
+| Abdurezak Anwar  | CTC-2844-26  | ROOM 1     |
+| Aymen Muhammed   | CTC-1544-26  | ROOM 1     |
 
 Four developers, four vertical slices — each owns the full stack (database + Go API + React screens) for their area, not just one layer:
 
