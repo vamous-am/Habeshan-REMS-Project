@@ -4,7 +4,7 @@ package admin
 
 type UpdateUserRequest struct {
 	FullName *string `json:"full_name,omitempty"`
-	Phone    *string `json:"phone,omitempty"`
+	Phone    *string `json:"phone,omitempty"` // Ethiopian mobile format is enforced in Service.UpdateUser.
 	Status   *string `json:"status,omitempty" validate:"omitempty,oneof=active inactive"`
 }
 
@@ -22,7 +22,7 @@ type CreateUserRequest struct {
 	FullName string `json:"full_name" validate:"required,min=2,max=100"`
 	Password string `json:"password"  validate:"required,min=8"`
 	Role     string `json:"role"      validate:"required,oneof=manager employee"`
-	Phone    string `json:"phone,omitempty"`
+	Phone    string `json:"phone,omitempty"` // Ethiopian mobile format is enforced in Service.CreateUser.
 }
 
 // ── Teams ────

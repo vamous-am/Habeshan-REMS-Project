@@ -27,6 +27,11 @@ func NewService(db *gorm.DB) *Service {
 // Role is always forced to employee (FR-AUTH-08).
 // Returns a JWT so the user is logged in immediately after registering.
 func (s *Service) Register(req RegisterRequest) (LoginResponse, error) {
+	if err := common.ValidateEthiopianPhone(req.Phone); err != nil {
+		return LoginResponse{}, err
+	}
+	req.Phone = strings.TrimSpace(req.Phone)
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 10) // cost >= 10, FR-AUTH-02
 	if err != nil {
 		return LoginResponse{}, common.ErrInternal
@@ -85,6 +90,7 @@ func (s *Service) Register(req RegisterRequest) (LoginResponse, error) {
 
 	return response, err
 }
+
 // ----Password Reset -------
 //
 // ⚠️ ponytail: MVP/demo flow — token returned in API response, not emailed.
