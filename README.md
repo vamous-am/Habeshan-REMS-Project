@@ -6,7 +6,7 @@
 
 Habeshan REMS is an offline-first, multi-tenant web platform that gives Ethiopian outsourcing agencies and distributed teams verifiable visibility into attendance, task progress, and hours worked replacing spreadsheets, chat threads, and informal check-ins with a system managers can actually trust.
 
-Built by Amanuel Musa as a solo project. Release 1.0 (MVP) showcase.
+Built by a team of 2 developers. Release 1.0 (MVP) showcase.
 
 ---
 
@@ -358,7 +358,12 @@ Full request/response shapes, error codes, and the complete endpoint catalog liv
 
 ## Team & Ownership
 
-Solo project by Amanuel Musa, organised as four vertical slices. Each slice covers the full stack (database + Go API + React screens) for its area, not just one layer:
+| Name             | CTC ID       | Class Room |
+|------------------|--------------|------------|
+| Amanuel Musa     | CTC-1441-26  | ROOM 1     |
+| Abdurezak Anwar  | CTC-2844-26  | ROOM 1     |
+
+Two developers, four vertical slices. Each slice covers the full stack (database + Go API + React screens) for its area, not just one layer:
 
 | Developer | Slice | Core tables |
 |---|---|---|
@@ -421,3 +426,8 @@ A few implementation details worth knowing before touching the attendance or tas
 ## Status
 
 ✅ Core MVP implementation complete.
+
+| Name             | ID           | Class Room |
+|------------------|--------------|------------|
+| Amanuel Musa     | CTC-1441-26  | ROOM 1     |
+| Abdurezak Anwar  | CTC-2844-26  | ROOM 1     |
