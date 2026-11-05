@@ -22,11 +22,6 @@ Originally built by a team of 4 developers in Phase 1. Release 1.0 (MVP) showcas
 
 ---
 
-## Project Documents
-
-- [Software Requirements Specification (SRS)](docs/Habeshan_REMS_SRS.pdf)
-
----
 
 ## Table of Contents
 
