@@ -1,6 +1,11 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ErrorState } from "../../components/ErrorState";
+import { Input } from "../../components/Input";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
   userRoleVariant,
@@ -8,7 +13,9 @@ import {
 } from "../../components/statusBadgeUtils";
 import { Select } from "../../components/Select";
 import { Table, type TableColumn } from "../../components/Table";
+import { useToast } from "../../components/useToast";
 import {
+  createUser,
   deleteUser,
   fetchUsers,
   updateUser,
@@ -16,6 +23,10 @@ import {
 } from "../../lib/api/adminClient";
 import type { UserDTO, UserRole } from "../../lib/api/authClient";
 import { extractAuthErrorMessage } from "../../lib/api/authClient";
+import {
+  ETHIOPIAN_PHONE_MESSAGE,
+  ETHIOPIAN_PHONE_PATTERN,
+} from "../../lib/phone";
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: "admin", label: "Admin" },
@@ -23,11 +34,45 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: "employee", label: "Employee" },
 ];
 
+const CREATE_ROLE_OPTIONS: {
+  value: "manager" | "employee";
+  label: string;
+}[] = [
+  { value: "employee", label: "Employee" },
+  { value: "manager", label: "Manager" },
+];
+
+const createUserSchema = z.object({
+  full_name: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: z.enum(["manager", "employee"]),
+  phone: z
+    .string()
+    .regex(ETHIOPIAN_PHONE_PATTERN, ETHIOPIAN_PHONE_MESSAGE)
+    .optional()
+    .or(z.literal("")),
+});
+
+type CreateUserForm = z.infer<typeof createUserSchema>;
+
 export default function UserManagement() {
+  const { showSuccess } = useToast();
   const [users, setUsers] = useState<UserDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
+
+  const form = useForm<CreateUserForm>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      full_name: "",
+      email: "",
+      password: "",
+      role: "employee",
+      phone: "",
+    },
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +98,30 @@ export default function UserManagement() {
       cancelled = true;
     };
   }, []);
+
+  async function handleCreateUser(values: CreateUserForm) {
+    setApiError(null);
+    try {
+      const user = await createUser({
+        full_name: values.full_name.trim(),
+        email: values.email.trim(),
+        password: values.password,
+        role: values.role,
+        phone: values.phone?.trim() || undefined,
+      });
+      setUsers((current) => [...current, user]);
+      form.reset({
+        full_name: "",
+        email: "",
+        password: "",
+        role: "employee",
+        phone: "",
+      });
+      showSuccess(`User "${user.full_name}" created.`);
+    } catch (err) {
+      setApiError(extractAuthErrorMessage(err));
+    }
+  }
 
   async function handleRoleChange(userId: string, role: UserRole) {
     setActionUserId(userId);
@@ -218,21 +287,68 @@ export default function UserManagement() {
   );
 
   return (
-    <section>
-      <div className="mb-6">
+    <section className="flex flex-col gap-8">
+      <div>
         <h2 className="font-display text-xl font-semibold text-ink">
           User management
         </h2>
         <p className="mt-1 text-sm text-ink500">
-          List users, assign roles, deactivate accounts, or soft-delete.
+          Create users, assign roles, deactivate accounts, or soft-delete.
         </p>
       </div>
 
-      {apiError && (
-        <div className="mb-4">
-          <ErrorState message={apiError} />
-        </div>
-      )}
+      {apiError && <ErrorState message={apiError} />}
+
+      <Card
+        title="Add user"
+        subtitle="Create a manager or employee account for this organization."
+        className="max-w-lg"
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit(handleCreateUser)}
+          noValidate
+        >
+          <Input
+            label="Full name"
+            autoComplete="name"
+            error={form.formState.errors.full_name?.message}
+            {...form.register("full_name")}
+          />
+          <Input
+            label="Email"
+            type="email"
+            autoComplete="email"
+            error={form.formState.errors.email?.message}
+            {...form.register("email")}
+          />
+          <Input
+            label="Password"
+            type="password"
+            autoComplete="new-password"
+            hint="At least 8 characters"
+            error={form.formState.errors.password?.message}
+            {...form.register("password")}
+          />
+          <Select
+            label="Role"
+            options={CREATE_ROLE_OPTIONS}
+            error={form.formState.errors.role?.message}
+            {...form.register("role")}
+          />
+          <Input
+            label="Phone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="09XXXXXXXX (optional)"
+            error={form.formState.errors.phone?.message}
+            {...form.register("phone")}
+          />
+          <Button type="submit" loading={form.formState.isSubmitting}>
+            Add user
+          </Button>
+        </form>
+      </Card>
 
       {loading ? (
         <p className="text-sm text-ink500">Loading users…</p>
