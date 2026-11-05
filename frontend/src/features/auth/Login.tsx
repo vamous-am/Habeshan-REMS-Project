@@ -3,10 +3,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
-import { ErrorState } from "../../components/ErrorState";
-import { Input } from "../../components/Input";
 import {
   extractAuthErrorMessage,
   login,
@@ -14,6 +10,8 @@ import {
   persistAuthSession,
   type OrgSummary,
 } from "../../lib/api/authClient";
+import { AuthField, AuthFieldGroup } from "./AuthField";
+import { AuthButton, AuthError, AuthLayout } from "./AuthLayout";
 
 const emailSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -118,56 +116,74 @@ export default function Login() {
   const selectedOrg = orgs.find((org) => org.org_id === selectedOrgId);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-paper p-4">
-      <Card
-        title="Sign in"
-        subtitle={
-          step === "email"
-            ? "Enter your email to continue"
-            : step === "org"
-              ? "Choose your organization"
-              : `Signing in as ${email}${selectedOrg ? ` · ${selectedOrg.org_name}` : ""}`
-        }
-      >
-        {apiError && (
-          <div className="mb-4">
-            <ErrorState message={apiError} />
-          </div>
-        )}
+    <AuthLayout
+      title="Welcome back"
+      subtitle={
+        step === "email"
+          ? "Sign in to your organization workspace. Enter your email to continue."
+          : step === "org"
+            ? "Choose your organization"
+            : `Signing in as ${email}${selectedOrg ? ` · ${selectedOrg.org_name}` : ""}`
+      }
+      footer={
+        <>
+          <p>
+            No account?{" "}
+            <Link
+              to="/register"
+              className="font-semibold text-ochre-light underline-offset-2 hover:underline"
+            >
+              Register
+            </Link>
+          </p>
+          <p className="mt-2">
+            <Link
+              to="/forgot-password"
+              className="text-ochre-light underline-offset-2 hover:underline"
+            >
+              Forgot password
+            </Link>
+          </p>
+        </>
+      }
+    >
+      {apiError && <AuthError message={apiError} />}
 
-        {step === "email" && (
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={emailForm.handleSubmit(handleEmailSubmit)}
-            noValidate
-          >
-            <Input
+      {step === "email" && (
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={emailForm.handleSubmit(handleEmailSubmit)}
+          noValidate
+        >
+          <AuthFieldGroup>
+            <AuthField
               label="Email"
               type="email"
               autoComplete="email"
+              placeholder="you@agency.et"
               error={emailForm.formState.errors.email?.message}
               {...emailForm.register("email")}
             />
-            <Button type="submit" loading={loading} className="w-full">
-              Continue
-            </Button>
-          </form>
-        )}
+          </AuthFieldGroup>
+          <AuthButton type="submit" loading={loading} className="w-full">
+            Continue
+          </AuthButton>
+        </form>
+      )}
 
-        {step === "org" && (
-          <div className="flex flex-col gap-4">
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm font-medium text-ink">
-                Organization
-              </legend>
+      {step === "org" && (
+        <div className="flex flex-col gap-5">
+          <fieldset>
+            <legend className="sr-only">Organization</legend>
+            <AuthFieldGroup>
               {orgs.map((org) => (
                 <label
                   key={org.org_id}
                   className={[
-                    "flex cursor-pointer items-center gap-3 rounded border px-3 py-2",
+                    "flex cursor-pointer items-center gap-3 px-4 py-3 sm:px-5",
                     selectedOrgId === org.org_id
-                      ? "border-ink bg-paper-dim"
-                      : "border-ink/20",
+                      ? "bg-ochre/10"
+                      : "hover:bg-white/[0.03]",
                   ].join(" ")}
                 >
                   <input
@@ -176,75 +192,74 @@ export default function Login() {
                     value={org.org_id}
                     checked={selectedOrgId === org.org_id}
                     onChange={() => setSelectedOrgId(org.org_id)}
-                    className="accent-ink"
+                    className="accent-ochre"
                   />
-                  <span className="text-sm text-ink">{org.org_name}</span>
+                  <span
+                    className={[
+                      "text-base",
+                      selectedOrgId === org.org_id
+                        ? "font-medium text-paper"
+                        : "text-auth-muted",
+                    ].join(" ")}
+                  >
+                    {org.org_name}
+                  </span>
                 </label>
               ))}
-            </fieldset>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleBack}
-                className="flex-1"
-              >
-                Back
-              </Button>
-              <Button
-                type="button"
-                onClick={handleOrgContinue}
-                className="flex-1"
-              >
-                Continue
-              </Button>
-            </div>
+            </AuthFieldGroup>
+          </fieldset>
+          <div className="flex gap-3">
+            <AuthButton
+              type="button"
+              variant="secondary"
+              onClick={handleBack}
+              className="flex-1"
+            >
+              Back
+            </AuthButton>
+            <AuthButton
+              type="button"
+              onClick={handleOrgContinue}
+              className="flex-1"
+            >
+              Continue
+            </AuthButton>
           </div>
-        )}
+        </div>
+      )}
 
-        {step === "password" && (
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
-            noValidate
-          >
-            <Input
+      {step === "password" && (
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
+          noValidate
+        >
+          <AuthFieldGroup>
+            <AuthField
               label="Password"
               type="password"
               autoComplete="current-password"
+              placeholder="Password"
+              passwordToggle
               error={passwordForm.formState.errors.password?.message}
               {...passwordForm.register("password")}
             />
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleBack}
-                className="flex-1"
-              >
-                Back
-              </Button>
-              <Button type="submit" loading={loading} className="flex-1">
-                Sign in
-              </Button>
-            </div>
-          </form>
-        )}
-
-        <p className="mt-6 text-center text-sm text-ink500">
-          No account?{" "}
-          <Link to="/register" className="text-ink underline underline-offset-2">
-            Register
-          </Link>
-          {" · "}
-          <Link
-            to="/forgot-password"
-            className="text-ink underline underline-offset-2"
-          >
-            Forgot password
-          </Link>
-        </p>
-      </Card>
-    </div>
+          </AuthFieldGroup>
+          <div className="flex gap-3">
+            <AuthButton
+              type="button"
+              variant="secondary"
+              onClick={handleBack}
+              className="flex-1"
+            >
+              Back
+            </AuthButton>
+            <AuthButton type="submit" loading={loading} className="flex-1">
+              Sign in
+            </AuthButton>
+          </div>
+        </form>
+      )}
+    </AuthLayout>
   );
 }
