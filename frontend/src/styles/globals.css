@@ -26,6 +26,9 @@
   --color-paper: #faf8f3;
   --color-paper-dim: #f0ece1;
 
+  /* Page background only. Surfaces (cards, tables, notes) keep paper. */
+  --color-app-bg: #fffefb;
+
   --color-ink900: #12161c;
   --color-ink500: #5c6470;
 
@@ -65,7 +68,7 @@
 }
 
 body {
-  background-color: var(--color-paper);
+  background-color: var(--color-app-bg);
   color: var(--color-ink900);
   font-family: var(--font-body);
 }
