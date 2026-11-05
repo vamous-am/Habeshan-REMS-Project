@@ -9,7 +9,7 @@ type RegisterRequest struct {
 	FullName string `json:"full_name" validate:"required,min=2,max=100"`
 	Email    string `json:"email" validate:"required,email,max=255"`
 	Password string `json:"password" validate:"required,min=8"`
-	Phone    string `json:"phone" validate:"omitempty,max=20"`
+	Phone    string `json:"phone" validate:"omitempty,max=20"` // Ethiopian mobile format is enforced in Service.Register.
 }
 
 // LookupRequest is the body for POST /auth/lookup.

@@ -42,6 +42,7 @@ var (
 	ErrConflict     = errors.New("resource already exists")
 	ErrInternal     = errors.New("internal server error")
 	ErrBadRequest   = errors.New("bad request")
+	ErrInvalidPhone = errors.New("invalid Ethiopian phone number")
 	ErrUnauthorized = errors.New("unauthorized")
 	ErrForbidden    = errors.New("forbidden")
 )
@@ -56,6 +57,7 @@ var errStatus = map[error]struct {
 	ErrForbidden:    {fiber.StatusForbidden, "forbidden"},
 	ErrConflict:     {fiber.StatusConflict, "resource already exists"},
 	ErrBadRequest:   {fiber.StatusBadRequest, "bad request"},
+	ErrInvalidPhone: {fiber.StatusBadRequest, EthiopianPhoneMessage},
 	ErrInternal:     {fiber.StatusInternalServerError, "internal server error"},
 }
 

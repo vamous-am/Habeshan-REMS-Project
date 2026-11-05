@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/auth"
@@ -52,7 +53,10 @@ func (s *Service) UpdateUser(orgID, userID uuid.UUID, req UpdateUserRequest) (au
 		user.FullName = *req.FullName
 	}
 	if req.Phone != nil {
-		user.Phone = *req.Phone
+		if err := common.ValidateEthiopianPhone(*req.Phone); err != nil {
+			return auth.UserDTO{}, err
+		}
+		user.Phone = strings.TrimSpace(*req.Phone)
 	}
 	if req.Status != nil {
 		user.Status = auth.UserStatus(*req.Status)
@@ -107,6 +111,10 @@ func (s *Service) CreateUser(orgID uuid.UUID, req CreateUserRequest) (auth.UserD
 	if auth.Role(req.Role) == auth.RoleAdmin {
 		return auth.UserDTO{}, common.ErrBadRequest
 	}
+	if err := common.ValidateEthiopianPhone(req.Phone); err != nil {
+		return auth.UserDTO{}, err
+	}
+	req.Phone = strings.TrimSpace(req.Phone)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 10) // cost >= 10, FR-AUTH-02
 	if err != nil {
@@ -130,7 +138,6 @@ func (s *Service) CreateUser(orgID uuid.UUID, req CreateUserRequest) (auth.UserD
 	}
 	return toUserDTO(user), nil
 }
-
 
 // ── Role assignment (FR-ADMIN-02) ──────────────────────────────────────────────
 

@@ -8,6 +8,10 @@ import {
   persistAuthSession,
   register,
 } from "../../lib/api/authClient";
+import {
+  ETHIOPIAN_PHONE_MESSAGE,
+  ETHIOPIAN_PHONE_PATTERN,
+} from "../../lib/phone";
 import { AuthField, AuthFieldGroup } from "./AuthField";
 import { AuthButton, AuthError, AuthLayout } from "./AuthLayout";
 
@@ -16,7 +20,11 @@ const registerSchema = z.object({
   full_name: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  phone: z.string().max(20, "Phone number is too long").optional().or(z.literal("")),
+  phone: z
+    .string()
+    .regex(ETHIOPIAN_PHONE_PATTERN, ETHIOPIAN_PHONE_MESSAGE)
+    .optional()
+    .or(z.literal("")),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -117,7 +125,7 @@ export default function Register() {
             label="Phone"
             type="tel"
             autoComplete="tel"
-            placeholder="Optional"
+            placeholder="09XXXXXXXX (optional)"
             error={form.formState.errors.phone?.message}
             {...form.register("phone")}
           />

@@ -1,8 +1,10 @@
 package admin_test
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/habeshan-rems/backend/internal/admin"
 	"github.com/habeshan-rems/backend/internal/common"
 	"golang.org/x/crypto/bcrypt"
@@ -130,6 +132,22 @@ func TestCreateUser_OrgIDNotInRequest(t *testing.T) {
 	// No org_id field exists — any attempt to set one would fail to compile.
 	// The test passing at all proves the struct has exactly the documented fields.
 	_ = req
+}
+
+// TestCreateUser_InvalidPhoneRejected verifies the service rejects an
+// invalid Ethiopian phone number before attempting any database work.
+func TestCreateUser_InvalidPhoneRejected(t *testing.T) {
+	svc := admin.NewService(nil)
+	_, err := svc.CreateUser(uuid.New(), admin.CreateUserRequest{
+		Email:    "invalid-phone@example.com",
+		FullName: "Invalid Phone",
+		Password: "hunter2abc",
+		Role:     "employee",
+		Phone:    "091122334455",
+	})
+	if !errors.Is(err, common.ErrInvalidPhone) {
+		t.Fatalf("expected ErrInvalidPhone, got %v", err)
+	}
 }
 
 // TestCreateUser_PhoneIsOptional verifies Phone can be omitted without error.
