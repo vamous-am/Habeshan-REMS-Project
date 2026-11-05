@@ -16,22 +16,48 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// parseCallerID accepts the ID as JWTAuth stores it (a string, per
+// auth.Claims) or as a uuid.UUID, and rejects anything else, including
+// uuid.Nil. Other modules (admin, tasks, dashboard, attendance) already
+// accept the string form; timesheets was the only one that insisted on
+// uuid.UUID, which made every timesheet request return 401.
+func parseCallerID(val interface{}) (uuid.UUID, bool) {
+	switch v := val.(type) {
+	case string:
+		if v == "" {
+			return uuid.Nil, false
+		}
+		parsed, err := uuid.Parse(v)
+		if err != nil || parsed == uuid.Nil {
+			return uuid.Nil, false
+		}
+		return parsed, true
+	case uuid.UUID:
+		if v == uuid.Nil {
+			return uuid.Nil, false
+		}
+		return v, true
+	default:
+		return uuid.Nil, false
+	}
+}
+
 // getCallerContext extracts (userID, orgID, role) from JWT locals set by JWTAuth.
 // Returns ErrUnauthorized if any field is missing without relying on client-supplied headers.
 func getCallerContext(c *fiber.Ctx) (userID uuid.UUID, orgID uuid.UUID, role auth.Role, err error) {
-	userIDVal, ok := c.Locals(middleware.LocalUserID).(uuid.UUID)
-	if !ok || userIDVal == uuid.Nil {
+	userID, ok := parseCallerID(c.Locals(middleware.LocalUserID))
+	if !ok {
 		return uuid.Nil, uuid.Nil, "", common.ErrUnauthorized
 	}
-	orgIDVal, ok := c.Locals(middleware.LocalOrgID).(uuid.UUID)
-	if !ok || orgIDVal == uuid.Nil {
+	orgID, ok = parseCallerID(c.Locals(middleware.LocalOrgID))
+	if !ok {
 		return uuid.Nil, uuid.Nil, "", common.ErrUnauthorized
 	}
 	roleVal, ok := c.Locals(middleware.LocalRole).(string)
 	if !ok || roleVal == "" {
 		return uuid.Nil, uuid.Nil, "", common.ErrUnauthorized
 	}
-	return userIDVal, orgIDVal, auth.Role(roleVal), nil
+	return userID, orgID, auth.Role(roleVal), nil
 }
 
 // ListTimesheets handles GET /api/v1/timesheets
