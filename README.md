@@ -43,7 +43,6 @@ Originally built by a team of 4 developers in Phase 1. Release 1.0 (MVP) showcas
 - [Background Schedulers](#background-schedulers)
 - [Offline-First Design Notes](#offline-first-design-notes)
 - [Status](#status)
-- [License](#license)
 
 ---
 
