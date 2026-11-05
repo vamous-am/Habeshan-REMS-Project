@@ -6,12 +6,19 @@
 
 Habeshan REMS is an offline-first, multi-tenant web platform that gives Ethiopian outsourcing agencies and distributed teams verifiable visibility into attendance, task progress, and hours worked replacing spreadsheets, chat threads, and informal check-ins with a system managers can actually trust.
 
-Built by a team of 4 developers Release 1.0 (MVP) showcase.
+Built by Amanuel Musa as a solo project. Release 1.0 (MVP) showcase.
+
+---
+
+## Demo Video
+
+🎬 _The link to the 5-minute demo video with voiceover will be added here._
 
 ---
 
 ## Table of Contents
 
+- [Demo Video](#demo-video)
 - [Why This Exists](#why-this-exists)
 - [Core Features (Release 1.0 Scope)](#core-features-release-10-scope)
 - [Out of Scope for MVP](#out-of-scope-for-mvp)
@@ -351,7 +358,7 @@ Full request/response shapes, error codes, and the complete endpoint catalog liv
 
 ## Team & Ownership
 
-Four developers, four vertical slices — each owns the full stack (database + Go API + React screens) for their area, not just one layer:
+Solo project by Amanuel Musa, organised as four vertical slices. Each slice covers the full stack (database + Go API + React screens) for its area, not just one layer:
 
 | Developer | Slice | Core tables |
 |---|---|---|
@@ -365,9 +372,9 @@ Dev 1's auth/RBAC middleware is a hard dependency for the other three slices and
 ## Development Workflow
 
 - `main` is always protected and deployable — no direct pushes.
-- Each developer works on their own feature branch (`feature/dev1-auth`, `feature/dev2-attendance`, etc.).
-- All changes go through Pull Requests; at least one other developer reviews before merge.
-- Schema changes are made exclusively via GORM migrations, named with a developer prefix or sequence number to avoid collisions. Never edit another developer's merged migration — write a new one.
+- Work happens on feature branches (`feature/dev1-auth`, `feature/dev2-attendance`, etc.), one per slice.
+- All changes go through Pull Requests, reviewed before merge.
+- Schema changes are made exclusively via GORM migrations, named with a slice prefix or sequence number to avoid collisions. Never edit a merged migration — write a new one.
 - Shared interfaces (API shapes, types, table contracts) live in `/contracts` and are agreed on *before* implementation starts, not discovered mid-build.
 
 **Definition of Done** for any task:
@@ -379,14 +386,14 @@ Dev 1's auth/RBAC middleware is a hard dependency for the other three slices and
 
 ## Testing
 
-Each developer owns the test suite for their slice's highest-risk path:
+Each slice has a test suite for its highest-risk path:
 
-| Owner | Focus |
+| Slice | Focus |
 |---|---|
-| Amanuel M| RBAC boundary + cross-organization isolation |
-| Aymen | Full offline-to-online sync state machine, including tamper rejection |
-| Amanuel H| Task/timer state machine — valid and invalid transitions |
-| Abdurezak | Timesheet aggregation accuracy against known attendance + task-timer fixtures |
+| Auth, Users & Admin | RBAC boundary + cross-organization isolation |
+| Attendance & Offline Sync | Full offline-to-online sync state machine, including tamper rejection |
+| Tasks & Work Timer | Task/timer state machine — valid and invalid transitions |
+| Timesheets & Reports | Timesheet aggregation accuracy against known attendance + task-timer fixtures |
 
 CI runs lint and the test suite on every pull request via GitHub Actions.
 
@@ -414,10 +421,3 @@ A few implementation details worth knowing before touching the attendance or tas
 ## Status
 
 ✅ Core MVP implementation complete.
-
-| Name             | ID           | Class Room |
-|------------------|--------------|------------|
-| Amanuel Musa     | CTC-1441-26  | ROOM 1     |
-| Amanuel Habtamu  | CTC-3561-26  | ROOM 1     |
-| Abdurezak Anwar  | CTC-2844-26  | ROOM 1     |
-| Aymen Muhammed   | CTC-1544-26  | ROOM 1     |
