@@ -42,6 +42,14 @@ export interface OrgDTO {
   subscription_status: "trial" | "active" | "suspended";
 }
 
+export interface CreateUserPayload {
+  email: string;
+  full_name: string;
+  password: string;
+  role: "manager" | "employee";
+  phone?: string;
+}
+
 export interface UpdateUserPayload {
   full_name?: string;
   phone?: string;
@@ -67,6 +75,12 @@ export async function fetchUsers(): Promise<UserDTO[]> {
 
 export async function fetchUser(userId: string): Promise<UserDTO> {
   return unwrap(await api.get(`${BASE}/users/${userId}`));
+}
+
+export async function createUser(
+  payload: CreateUserPayload
+): Promise<UserDTO> {
+  return unwrap(await api.post(`${BASE}/users`, payload));
 }
 
 export async function updateUser(
