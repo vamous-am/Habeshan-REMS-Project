@@ -3,9 +3,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../../components/Button";
-import { Card } from "../../components/Card";
 import { ErrorState } from "../../components/ErrorState";
-import { Input } from "../../components/Input";
+import {
+  FormFieldGroup,
+  FormNote,
+  GroupedFormButton,
+  GroupedFormPanel,
+  GroupedInputField,
+  GroupedSelectField,
+} from "../../components/GroupedForm";
 import { Select } from "../../components/Select";
 import { Table, type TableColumn } from "../../components/Table";
 import {
@@ -234,26 +240,35 @@ export default function TeamManagement() {
 
       {apiError && <ErrorState message={apiError} />}
 
-      <Card title="Create team" className="max-w-lg">
+      <GroupedFormPanel
+        title="Create team"
+        subtitle="Group employees under one manager."
+      >
         <form
-          className="flex flex-col gap-4"
           onSubmit={form.handleSubmit(handleCreateTeam)}
           noValidate
         >
-          <Input
-            label="Team name"
-            error={form.formState.errors.name?.message}
-            {...form.register("name")}
-          />
-          <Select
-            label="Manager"
-            options={[{ value: "", label: "Select manager…" }, ...managerOptions]}
-            error={form.formState.errors.manager_id?.message}
-            {...form.register("manager_id")}
-          />
-          <Button type="submit">Create team</Button>
+          <FormFieldGroup>
+            <GroupedInputField
+              label="Team name"
+              error={form.formState.errors.name?.message}
+              {...form.register("name")}
+            />
+            <GroupedSelectField
+              label="Manager"
+              options={[{ value: "", label: "Select manager…" }, ...managerOptions]}
+              error={form.formState.errors.manager_id?.message}
+              {...form.register("manager_id")}
+            />
+          </FormFieldGroup>
+          <FormNote title="What the manager sees">
+            This team's members, tasks and timesheets.
+          </FormNote>
+          <GroupedFormButton type="submit" className="mt-5 w-full">
+            Create team
+          </GroupedFormButton>
         </form>
-      </Card>
+      </GroupedFormPanel>
 
       {loading ? (
         <p className="text-sm text-ink500">Loading teams…</p>
