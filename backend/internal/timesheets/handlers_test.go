@@ -8,8 +8,36 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/habeshan-rems/backend/internal/auth"
 	"github.com/habeshan-rems/backend/internal/middleware"
 )
+
+func TestManagerTargetRequiresScopeCheck(t *testing.T) {
+	managerID := uuid.New()
+	employeeID := uuid.New()
+
+	tests := []struct {
+		name     string
+		role     auth.Role
+		callerID uuid.UUID
+		targetID uuid.UUID
+		want     bool
+	}{
+		{name: "manager viewing self", role: auth.RoleManager, callerID: managerID, targetID: managerID, want: false},
+		{name: "manager viewing employee", role: auth.RoleManager, callerID: managerID, targetID: employeeID, want: true},
+		{name: "employee viewing target", role: auth.RoleEmployee, callerID: managerID, targetID: employeeID, want: false},
+		{name: "admin viewing target", role: auth.RoleAdmin, callerID: managerID, targetID: employeeID, want: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := managerTargetRequiresScopeCheck(tc.role, tc.callerID, tc.targetID)
+			if got != tc.want {
+				t.Fatalf("managerTargetRequiresScopeCheck() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
 
 // TestGetCallerContext_StringLocals is the regression test for the 401 bug
 // found 2026-11-05: JWTAuth stores user_id and org_id as strings (see
