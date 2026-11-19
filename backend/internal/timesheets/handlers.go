@@ -60,6 +60,10 @@ func getCallerContext(c *fiber.Ctx) (userID uuid.UUID, orgID uuid.UUID, role aut
 	return userID, orgID, auth.Role(roleVal), nil
 }
 
+func managerTargetRequiresScopeCheck(role auth.Role, callerID, targetID uuid.UUID) bool {
+	return role == auth.RoleManager && targetID != callerID
+}
+
 // ListTimesheets handles GET /api/v1/timesheets
 // Access rules:
 //   - Employee: may only list their own timesheets (user_id forced to callerID)
@@ -88,7 +92,7 @@ func (h *Handler) ListTimesheets(c *fiber.Ctx) error {
 				return common.Fail(c, fiber.StatusBadRequest, "invalid user_id query param")
 			}
 			// For manager, verify the target employee is in one of their teams
-			if role == auth.RoleManager {
+			if managerTargetRequiresScopeCheck(role, callerID, parsed) {
 				if scopeErr := h.service.assertManagerOwnsEmployee(orgID, callerID, parsed); scopeErr != nil {
 					return common.HandleError(c, scopeErr)
 				}
