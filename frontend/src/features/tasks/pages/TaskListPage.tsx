@@ -19,6 +19,7 @@ import TaskPriorityBadge from "../components/TaskPriorityBadge";
 import CreateTaskForm from "../components/CreateTaskForm";
 import TaskStatsCard from "../components/TaskStatsCard";
 import TaskFilters from "../components/TaskFilters";
+import { getUserRole } from "../../../lib/api/authClient";
 
 const DEFAULT_FILTERS: TaskFilterState = {
   status: "all",
@@ -38,6 +39,8 @@ function isOverdue(task: Task): boolean {
 }
 
 export default function TaskListPage() {
+  const role = getUserRole();
+  const canManage = role === "admin" || role === "manager";
   const [tasks, setTasks] = useState<Task[]>([]);
   const [counts, setCounts] = useState<TaskStatusCounts | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,32 +63,33 @@ export default function TaskListPage() {
   }, []);
 
   const loadCounts = useCallback(async () => {
+    if (!canManage) return;
     setCountsLoading(true);
     setCountsError(null);
     try {
       const c = await fetchStatusCounts();
       setCounts(c);
     } catch (e: unknown) {
-      // Status counts are only available to admin/manager — failing quietly for
-      // employees is expected and fine; show the error in the card only.
       setCountsError(extractApiErrorMessage(e));
       setCounts(null);
     } finally {
       setCountsLoading(false);
     }
-  }, []);
+  }, [canManage]);
 
   useEffect(() => {
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
       load();
-      loadCounts();
+      if (canManage) {
+        loadCounts();
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [load, loadCounts]);
+  }, [load, loadCounts, canManage]);
 
   // Compute derived counters for filter UI.
   const overdueCount = useMemo(
@@ -132,15 +136,18 @@ export default function TaskListPage() {
         </p>
       </header>
 
-      <TaskStatsCard
-        counts={counts}
-        loading={countsLoading}
-        error={countsError}
-        onStatusClick={handleStatusClick}
-        activeStatus={filters.status}
-      />
-
-      <CreateTaskForm onCreated={load} />
+      {canManage && (
+        <>
+          <TaskStatsCard
+            counts={counts}
+            loading={countsLoading}
+            error={countsError}
+            onStatusClick={handleStatusClick}
+            activeStatus={filters.status}
+          />
+          <CreateTaskForm onCreated={load} />
+        </>
+      )}
 
       <TaskFilters
         filters={filters}
@@ -176,7 +183,9 @@ export default function TaskListPage() {
           }}
         >
           {tasks.length === 0
-            ? "No tasks found. Create one to get started."
+            ? canManage
+              ? "No tasks found. Create one to get started."
+              : "No tasks found."
             : "No tasks match the current filters."}
         </div>
       )}
